@@ -11,3 +11,21 @@ In `glox` folder you can run:
 - `make install` to install the interpreter globally
 
 ## rlox: The Rust interpreter [TODO]
+
+
+## Example of Lox file
+
+```lox
+// fibonacci.lox
+print "This program will output fibonacci numbers up to 10!";
+
+fun fibonacci(first, second, count) {
+    if (count <= 0) {
+        return;
+    }
+    print first + second;
+    fibonacci(second, first + second, count - 1);
+}
+
+fibonacci(0, 1, 10);
+```
