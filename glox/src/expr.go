@@ -5,10 +5,10 @@ type Expr interface {
 }
 
 type Visitor interface {
-	visitBinaryExpr(*ExprBinary)
-	visitGroupingExpr(*ExprGrouping)
-	visitLiteralExpr(*ExprLiteral)
-	visitUnaryExpr(*ExprUnary)
+	visitBinaryExpr(*ExprBinary) any
+	visitGroupingExpr(*ExprGrouping) any
+	visitLiteralExpr(*ExprLiteral) any
+	visitUnaryExpr(*ExprUnary) any
 }
 
 // Binary   : Expr left, Token operator, Expr right
@@ -18,8 +18,8 @@ type ExprBinary struct {
 	right    Expr
 }
 
-func NewExprBinary(left Expr, operator Token, right Expr) ExprBinary {
-	return ExprBinary{
+func NewExprBinary(left Expr, operator Token, right Expr) *ExprBinary {
+	return &ExprBinary{
 		left:     left,
 		operator: operator,
 		right:    right,
@@ -27,8 +27,7 @@ func NewExprBinary(left Expr, operator Token, right Expr) ExprBinary {
 }
 
 func (expr *ExprBinary) accept(v Visitor) any {
-	v.visitBinaryExpr(expr)
-	return nil
+	return v.visitBinaryExpr(expr)
 }
 
 // Grouping : Expr expression
@@ -36,13 +35,12 @@ type ExprGrouping struct {
 	expression Expr
 }
 
-func NewExprGrouping(expression Expr) ExprGrouping {
-	return ExprGrouping{expression: expression}
+func NewExprGrouping(expression Expr) *ExprGrouping {
+	return &ExprGrouping{expression: expression}
 }
 
 func (expr *ExprGrouping) accept(v Visitor) any {
-	v.visitGroupingExpr(expr)
-	return nil
+	return v.visitGroupingExpr(expr)
 }
 
 // Literal  : Object value
@@ -50,13 +48,12 @@ type ExprLiteral struct {
 	value any
 }
 
-func NewExprLiteral(value any) ExprLiteral {
-	return ExprLiteral{value: value}
+func NewExprLiteral(value any) *ExprLiteral {
+	return &ExprLiteral{value: value}
 }
 
 func (expr *ExprLiteral) accept(v Visitor) any {
-	v.visitLiteralExpr(expr)
-	return nil
+	return v.visitLiteralExpr(expr)
 }
 
 // Unary    : Token operator, Expr right
@@ -65,14 +62,13 @@ type ExprUnary struct {
 	right    Expr
 }
 
-func NewExprUnary(operator Token, right Expr) ExprUnary {
-	return ExprUnary{
+func NewExprUnary(operator Token, right Expr) *ExprUnary {
+	return &ExprUnary{
 		operator: operator,
 		right:    right,
 	}
 }
 
 func (expr *ExprUnary) accept(v Visitor) any {
-	v.visitUnaryExpr(expr)
-	return nil
+	return v.visitUnaryExpr(expr)
 }
