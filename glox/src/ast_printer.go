@@ -7,6 +7,10 @@ import (
 
 type AstPrinter struct{}
 
+func NewAstPrinter() *AstPrinter {
+	return &AstPrinter{}
+}
+
 func (ast *AstPrinter) print(expr Expr) any {
 	return expr.accept(ast)
 }
@@ -23,7 +27,12 @@ func (ast *AstPrinter) visitLiteralExpr(expr *ExprLiteral) any {
 	if expr.value == nil {
 		return "nil"
 	}
-	return fmt.Sprintf("%v", expr.value)
+	switch expr.value.(type) {
+	case string:
+		return fmt.Sprintf("\"%v\"", expr.value)
+	default:
+		return fmt.Sprintf("%v", expr.value)
+	}
 }
 
 func (ast *AstPrinter) visitUnaryExpr(expr *ExprUnary) any {
