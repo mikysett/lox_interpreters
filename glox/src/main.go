@@ -55,9 +55,16 @@ func runPrompt() error {
 func run(source string) (err error) {
 	scanner := NewScanner(source)
 	err = scanner.scanTokens()
-
-	for _, token := range scanner.Tokens {
-		fmt.Println(token.toString())
+	if err != nil {
+		return err
 	}
+
+	parser := NewParser(scanner.Tokens)
+	expr, err := parser.parse()
+	if err != nil {
+		return err
+	}
+
+	fmt.Println(NewAstPrinter().print(expr))
 	return err
 }
