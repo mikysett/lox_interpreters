@@ -38,6 +38,7 @@ func NewScanner(source string) Scanner {
 		Source:   source,
 		Tokens:   []Token{},
 		keywords: keywords,
+		line:     1,
 	}
 }
 
