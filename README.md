@@ -29,3 +29,12 @@ fun fibonacci(first, second, count) {
 
 fibonacci(0, 1, 10);
 ```
+
+## To test those implementations with the offical tests
+
+- `git clone` the [offical repo](https://github.com/munificent/craftinginterpreters) in the same directory of this one
+- Follow the readme to install all dependencies and prepare for testing
+- For example for running the tests for chapter 6 for `glox` use:
+```bash
+dart tool/bin/test.dart chap06_parsing -i ../lox_interpreters/glox/bin/glox
+```
