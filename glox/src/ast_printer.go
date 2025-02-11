@@ -30,6 +30,8 @@ func (ast *AstPrinter) visitLiteralExpr(expr *ExprLiteral) any {
 	switch expr.value.(type) {
 	case string:
 		return fmt.Sprintf("\"%v\"", expr.value)
+	case float64:
+		return fmt.Sprintf("%.1f", expr.value)
 	default:
 		return fmt.Sprintf("%v", expr.value)
 	}
