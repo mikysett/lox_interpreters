@@ -29,7 +29,7 @@ clean:
 			$(RM) bin
 			printf "$(WHT)[$(YEL)$(NAME) BINARIES$(WHT)]\n"
 
-test:
+test: build
 	printf "$(WHT)[$(RED)TODO$(WHT)]\n"
 
 .PHONY:		all build install clean test

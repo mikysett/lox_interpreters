@@ -4,6 +4,15 @@ import (
 	"fmt"
 )
 
+// expression     → commaSeparator ;
+// commaSeparator → equality ( ( "," ) equality )* ;
+// equality       → comparison ( ( "!=" | "==" ) comparison )* ;
+// comparison     → term ( ( ">" | ">=" | "<" | "<=" ) term )* ;
+// term           → factor ( ( "-" | "+" ) factor )* ;
+// factor         → unary ( ( "/" | "*" ) unary )* ;
+// unary          → ( "!" | "-" ) unary | primary ;
+// primary        → NUMBER | STRING | "true" | "false" | "nil" | "(" expression ")" ;
+
 type ParseError struct {
 	token   *Token
 	message string
@@ -38,7 +47,24 @@ func (p *Parser) parse() (Expr, error) {
 }
 
 func (p *Parser) expression() (Expr, error) {
-	return p.equality()
+	return p.commaSeparator()
+}
+
+func (p *Parser) commaSeparator() (Expr, error) {
+	expr, err := p.equality()
+	if err != nil {
+		return nil, err
+	}
+
+	for p.match(Comma) {
+		operator := p.previous()
+		right, err := p.equality()
+		if err != nil {
+			return nil, err
+		}
+		expr = NewExprBinary(expr, *operator, right)
+	}
+	return expr, nil
 }
 
 func (p *Parser) equality() (Expr, error) {
