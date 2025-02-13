@@ -19,7 +19,7 @@ type ParseError struct {
 	message string
 }
 
-func (e ParseError) Error() string {
+func (e *ParseError) Error() string {
 	if e.token.Type == EOF {
 		return fmt.Sprintf("Line %v: at end. %v", e.token.Line, e.message)
 	}
@@ -44,27 +44,34 @@ func (p *Parser) parse() (Expr, error) {
 		fmt.Println(err)
 		return nil, err
 	}
-	return expr, err
+	return expr, nil
 }
 
 func (p *Parser) expression() (Expr, error) {
 	return p.commaSeparator()
 }
 
-func (p *Parser) commaSeparator() (Expr, error) {
+func (p *Parser) commaSeparator() (expr Expr, firstErr error) {
 	expr, err := p.ternary()
 	if err != nil {
-		return nil, err
+		firstErr = err
 	}
 
 	for p.match(Comma) {
 		operator := p.previous()
 		right, err := p.ternary()
 		if err != nil {
-			return nil, err
+			if firstErr == nil {
+				firstErr = err
+			}
+			break
 		}
 		expr = NewExprBinary(expr, *operator, right)
 	}
+	if firstErr != nil {
+		return nil, firstErr
+	}
+
 	return expr, nil
 }
 
@@ -93,58 +100,79 @@ func (p *Parser) ternary() (Expr, error) {
 	return expr, nil
 }
 
-func (p *Parser) equality() (Expr, error) {
+func (p *Parser) equality() (expr Expr, firstErr error) {
 	expr, err := p.comparison()
 	if err != nil {
-		return nil, err
+		firstErr = err
 	}
 
 	for p.match(BangEqual, EqualEqual) {
 		operator := p.previous()
 		right, err := p.comparison()
 		if err != nil {
-			return nil, err
+			if firstErr == nil {
+				firstErr = err
+			}
+			break
 		}
 		expr = NewExprBinary(expr, *operator, right)
 	}
+	if firstErr != nil {
+		return nil, firstErr
+	}
+
 	return expr, nil
 }
 
-func (p *Parser) comparison() (Expr, error) {
+func (p *Parser) comparison() (expr Expr, firstErr error) {
 	expr, err := p.term()
 	if err != nil {
-		return nil, err
+		firstErr = err
 	}
 
 	for p.match(Greater, GreaterEqual, Less, LessEqual) {
 		operator := p.previous()
 		right, err := p.term()
 		if err != nil {
-			return nil, err
+			if firstErr == nil {
+				firstErr = err
+			}
+			break
 		}
 		expr = NewExprBinary(expr, *operator, right)
 	}
+	if firstErr != nil {
+		return nil, firstErr
+	}
+
 	return expr, nil
 }
 
-func (p *Parser) term() (Expr, error) {
+func (p *Parser) term() (expr Expr, firstErr error) {
 	expr, err := p.factor()
 	if err != nil {
-		return nil, err
+		firstErr = err
 	}
 
 	for p.match(Minus, Plus) {
 		operator := p.previous()
 		right, err := p.factor()
 		if err != nil {
-			return nil, err
+			if firstErr == nil {
+				firstErr = err
+			}
+			break
 		}
 		expr = NewExprBinary(expr, *operator, right)
 	}
+	if firstErr != nil {
+		return nil, firstErr
+	}
+
 	return expr, nil
 }
 
-func (p *Parser) factor() (Expr, error) {
+func (p *Parser) factor() (expr Expr, firstErr error) {
 	expr, err := p.unary()
 	if err != nil {
 		return nil, err
@@ -254,8 +282,8 @@ func (p *Parser) synchronize() {
 	}
 }
 
-func NewError(token *Token, message string) ParseError {
-	return ParseError{
+func NewError(token *Token, message string) *ParseError {
+	return &ParseError{
 		token:   token,
 		message: message,
 	}
