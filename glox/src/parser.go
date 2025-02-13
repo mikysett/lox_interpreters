@@ -5,7 +5,8 @@ import (
 )
 
 // expression     → commaSeparator ;
-// commaSeparator → equality ( ( "," ) equality )* ;
+// commaSeparator → ternary ( ( "," ) ternary )* ;
+// ternary        → ( equality "?" equality ":" )* equality ;
 // equality       → comparison ( ( "!=" | "==" ) comparison )* ;
 // comparison     → term ( ( ">" | ">=" | "<" | "<=" ) term )* ;
 // term           → factor ( ( "-" | "+" ) factor )* ;
@@ -51,18 +52,43 @@ func (p *Parser) expression() (Expr, error) {
 }
 
 func (p *Parser) commaSeparator() (Expr, error) {
-	expr, err := p.equality()
+	expr, err := p.ternary()
 	if err != nil {
 		return nil, err
 	}
 
 	for p.match(Comma) {
 		operator := p.previous()
-		right, err := p.equality()
+		right, err := p.ternary()
 		if err != nil {
 			return nil, err
 		}
 		expr = NewExprBinary(expr, *operator, right)
+	}
+	return expr, nil
+}
+
+func (p *Parser) ternary() (Expr, error) {
+	expr, err := p.equality()
+	if err != nil {
+		return nil, err
+	}
+
+	for p.match(QuestionMark) {
+		left, err := p.ternary()
+		if err != nil {
+			return nil, err
+		}
+		var right Expr
+		if p.match(Colon) {
+			right, err = p.ternary()
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			return nil, NewError(p.peek(), "Expect :.")
+		}
+		expr = NewExprTernary(expr, left, right)
 	}
 	return expr, nil
 }

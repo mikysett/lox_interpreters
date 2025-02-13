@@ -6,6 +6,7 @@ type Expr interface {
 
 type Visitor interface {
 	visitBinaryExpr(*ExprBinary) any
+	visitTernaryExpr(*ExprTernary) any
 	visitGroupingExpr(*ExprGrouping) any
 	visitLiteralExpr(*ExprLiteral) any
 	visitUnaryExpr(*ExprUnary) any
@@ -28,6 +29,25 @@ func NewExprBinary(left Expr, operator Token, right Expr) *ExprBinary {
 
 func (expr *ExprBinary) accept(v Visitor) any {
 	return v.visitBinaryExpr(expr)
+}
+
+// Binary   : Expr left, Token operator, Expr right
+type ExprTernary struct {
+	condition Expr
+	left      Expr
+	right     Expr
+}
+
+func NewExprTernary(condition Expr, left Expr, right Expr) *ExprTernary {
+	return &ExprTernary{
+		condition: condition,
+		left:      left,
+		right:     right,
+	}
+}
+
+func (expr *ExprTernary) accept(v Visitor) any {
+	return v.visitTernaryExpr(expr)
 }
 
 // Grouping : Expr expression

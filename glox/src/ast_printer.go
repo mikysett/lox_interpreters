@@ -19,6 +19,10 @@ func (ast *AstPrinter) visitBinaryExpr(expr *ExprBinary) any {
 	return ast.parenthesize(expr.operator.Lexeme, expr.left, expr.right)
 }
 
+func (ast *AstPrinter) visitTernaryExpr(expr *ExprTernary) any {
+	return ast.parenthesize("?:", expr.condition, expr.left, expr.right)
+}
+
 func (ast *AstPrinter) visitGroupingExpr(expr *ExprGrouping) any {
 	return ast.parenthesize("group", expr.expression)
 }

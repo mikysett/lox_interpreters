@@ -31,6 +31,8 @@ var keywords = map[string]TokenType{
 	"true":   True,
 	"var":    Var,
 	"while":  While,
+	"?":      QuestionMark,
+	":":      Colon,
 }
 
 func NewScanner(source string) Scanner {
@@ -123,6 +125,10 @@ func (scanner *Scanner) scanToken() (err error) {
 		}
 	case '"':
 		err = scanner.stringLiteral()
+	case '?':
+		scanner.addToken(QuestionMark)
+	case ':':
+		scanner.addToken(Colon)
 	case ' ':
 	case '\r':
 	case '\t':

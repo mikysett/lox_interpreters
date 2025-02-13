@@ -15,6 +15,8 @@ const (
 	Semicolon
 	Slash
 	Star
+	QuestionMark
+	Colon
 
 	// One or two character tokens.
 	Bang
