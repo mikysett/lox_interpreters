@@ -1,10 +1,10 @@
 package main
 
 type Expr interface {
-	accept(Visitor) (any, error)
+	accept(ExprVisitor) (any, error)
 }
 
-type Visitor interface {
+type ExprVisitor interface {
 	visitBinaryExpr(*ExprBinary) (any, error)
 	visitTernaryExpr(*ExprTernary) (any, error)
 	visitGroupingExpr(*ExprGrouping) (any, error)
@@ -27,7 +27,7 @@ func NewExprBinary(left Expr, operator Token, right Expr) *ExprBinary {
 	}
 }
 
-func (expr *ExprBinary) accept(v Visitor) (any, error) {
+func (expr *ExprBinary) accept(v ExprVisitor) (any, error) {
 	return v.visitBinaryExpr(expr)
 }
 
@@ -48,7 +48,7 @@ func NewExprTernary(operator Token, condition Expr, left Expr, right Expr) *Expr
 	}
 }
 
-func (expr *ExprTernary) accept(v Visitor) (any, error) {
+func (expr *ExprTernary) accept(v ExprVisitor) (any, error) {
 	return v.visitTernaryExpr(expr)
 }
 
@@ -61,7 +61,7 @@ func NewExprGrouping(expression Expr) *ExprGrouping {
 	return &ExprGrouping{expression: expression}
 }
 
-func (expr *ExprGrouping) accept(v Visitor) (any, error) {
+func (expr *ExprGrouping) accept(v ExprVisitor) (any, error) {
 	return v.visitGroupingExpr(expr)
 }
 
@@ -74,7 +74,7 @@ func NewExprLiteral(value any) *ExprLiteral {
 	return &ExprLiteral{value: value}
 }
 
-func (expr *ExprLiteral) accept(v Visitor) (any, error) {
+func (expr *ExprLiteral) accept(v ExprVisitor) (any, error) {
 	return v.visitLiteralExpr(expr)
 }
 
@@ -91,6 +91,6 @@ func NewExprUnary(operator Token, right Expr) *ExprUnary {
 	}
 }
 
-func (expr *ExprUnary) accept(v Visitor) (any, error) {
+func (expr *ExprUnary) accept(v ExprVisitor) (any, error) {
 	return v.visitUnaryExpr(expr)
 }
