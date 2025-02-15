@@ -1,12 +1,12 @@
 package main
 
 type Stmt interface {
-	accept(StmtVisitor) (any, error)
+	accept(StmtVisitor) error
 }
 
 type StmtVisitor interface {
-	visitExpressionStmt(*StmtExpression) (any, error)
-	visitPrintStmt(*StmtPrint) (any, error)
+	visitExpressionStmt(*StmtExpression) error
+	visitPrintStmt(*StmtPrint) error
 }
 
 // Expression : Expr expression
@@ -20,7 +20,7 @@ func NewStmtExpression(expression Expr) *StmtExpression {
 	}
 }
 
-func (expr *StmtExpression) accept(v StmtVisitor) (any, error) {
+func (expr *StmtExpression) accept(v StmtVisitor) error {
 	return v.visitExpressionStmt(expr)
 }
 
@@ -35,6 +35,6 @@ func NewStmtPrint(expression Expr) *StmtPrint {
 	}
 }
 
-func (expr *StmtPrint) accept(v StmtVisitor) (any, error) {
+func (expr *StmtPrint) accept(v StmtVisitor) error {
 	return v.visitPrintStmt(expr)
 }
