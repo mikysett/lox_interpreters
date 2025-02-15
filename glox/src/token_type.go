@@ -4,29 +4,29 @@ type TokenType int
 
 const (
 	// Single-character tokens.
-	LeftParen = iota
-	RightParen
-	LeftBrace
-	RightBrace
-	Comma
-	Dot
-	Minus
-	Plus
-	Semicolon
-	Slash
-	Star
-	QuestionMark
-	Colon
+	LeftParen    = iota // Char: '('
+	RightParen          // Char: ')'
+	LeftBrace           // Char: '{'
+	RightBrace          // Char: '}'
+	Comma               // Char: ','
+	Dot                 // Char: '.'
+	Minus               // Char: '-'
+	Plus                // Char: '+'
+	Semicolon           // Char: ";"
+	Slash               // Char: "/"
+	Star                // Char: '*'
+	QuestionMark        // Char: '?'
+	Colon               // Char: ':'
 
 	// One or two character tokens.
-	Bang
-	BangEqual
-	Equal
-	EqualEqual
-	Greater
-	GreaterEqual
-	Less
-	LessEqual
+	Bang         // Char: '!'
+	BangEqual    // Char: '!='
+	Equal        // Char: '='
+	EqualEqual   // Char: '=='
+	Greater      // Char: '>'
+	GreaterEqual // Char: '>='
+	Less         // Char: '<'
+	LessEqual    // Char: '<='
 
 	// Literals.
 	Identifier
@@ -34,22 +34,22 @@ const (
 	Number
 
 	// Keywords.
-	And
-	Class
-	Else
-	False
-	Fun
-	For
-	If
-	Nil
-	Or
-	Print
-	Return
-	Super
-	This
-	True
-	Var
-	While
+	And    // Char: 'and'
+	Class  // Char: 'class'
+	Else   // Char: 'else'
+	False  // Char: 'false'
+	Fun    // Char: 'fun'
+	For    // Char: 'for'
+	If     // Char: 'if'
+	Nil    // Char: 'nil'
+	Or     // Char: 'or'
+	Print  // Char: 'print'
+	Return // Char: 'return'
+	Super  // Char: 'super'
+	This   // Char: 'this'
+	True   // Char: 'true'
+	Var    // Char: 'var'
+	While  // Char: 'while'
 
 	EOF
 )
