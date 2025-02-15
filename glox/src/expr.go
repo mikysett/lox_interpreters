@@ -16,11 +16,11 @@ type ExprVisitor interface {
 // Binary   : Expr left, Token operator, Expr right
 type ExprBinary struct {
 	left     Expr
-	operator Token
+	operator *Token
 	right    Expr
 }
 
-func NewExprBinary(left Expr, operator Token, right Expr) *ExprBinary {
+func NewExprBinary(left Expr, operator *Token, right Expr) *ExprBinary {
 	return &ExprBinary{
 		left:     left,
 		operator: operator,
@@ -34,13 +34,13 @@ func (expr *ExprBinary) accept(v ExprVisitor) (any, error) {
 
 // Ternary   : Expr condition, Token operator, Expr left, Expr right
 type ExprTernary struct {
-	operator  Token
+	operator  *Token
 	condition Expr
 	left      Expr
 	right     Expr
 }
 
-func NewExprTernary(operator Token, condition Expr, left Expr, right Expr) *ExprTernary {
+func NewExprTernary(operator *Token, condition Expr, left Expr, right Expr) *ExprTernary {
 	return &ExprTernary{
 		operator:  operator,
 		condition: condition,
@@ -81,11 +81,11 @@ func (expr *ExprLiteral) accept(v ExprVisitor) (any, error) {
 
 // Unary    : Token operator, Expr right
 type ExprUnary struct {
-	operator Token
+	operator *Token
 	right    Expr
 }
 
-func NewExprUnary(operator Token, right Expr) *ExprUnary {
+func NewExprUnary(operator *Token, right Expr) *ExprUnary {
 	return &ExprUnary{
 		operator: operator,
 		right:    right,
@@ -98,10 +98,10 @@ func (expr *ExprUnary) accept(v ExprVisitor) (any, error) {
 
 // "Variable : Token name"
 type ExprVariable struct {
-	name Token
+	name *Token
 }
 
-func NewExprVariable(name Token) *ExprVariable {
+func NewExprVariable(name *Token) *ExprVariable {
 	return &ExprVariable{
 		name: name,
 	}

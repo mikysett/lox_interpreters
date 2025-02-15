@@ -91,63 +91,63 @@ func (interpreter *Interpreter) visitBinaryExpr(expr *ExprBinary) (any, error) {
 	case EqualEqual:
 		return isEqual(left, right), nil
 	case Greater:
-		err := checkNumberOperands(&expr.operator, left, right)
+		err := checkNumberOperands(expr.operator, left, right)
 		if err != nil {
 			return nil, err
 		}
 		return left.(float64) > right.(float64), nil
 	case GreaterEqual:
-		err := checkNumberOperands(&expr.operator, left, right)
+		err := checkNumberOperands(expr.operator, left, right)
 		if err != nil {
 			return nil, err
 		}
 		return left.(float64) >= right.(float64), nil
 	case Less:
-		err := checkNumberOperands(&expr.operator, left, right)
+		err := checkNumberOperands(expr.operator, left, right)
 		if err != nil {
 			return nil, err
 		}
 		return left.(float64) < right.(float64), nil
 	case LessEqual:
-		err := checkNumberOperands(&expr.operator, left, right)
+		err := checkNumberOperands(expr.operator, left, right)
 		if err != nil {
 			return nil, err
 		}
 		return left.(float64) <= right.(float64), nil
 	case Minus:
-		err := checkNumberOperands(&expr.operator, left, right)
+		err := checkNumberOperands(expr.operator, left, right)
 		if err != nil {
 			return nil, err
 		}
 		return left.(float64) - right.(float64), nil
 	case Slash:
-		err := checkNumberOperands(&expr.operator, left, right)
+		err := checkNumberOperands(expr.operator, left, right)
 		if err != nil {
 			return nil, err
 		}
 		if right.(float64) == 0 {
-			return nil, NewRuntimeError(&expr.operator, "Division by 0.")
+			return nil, NewRuntimeError(expr.operator, "Division by 0.")
 		}
 		return left.(float64) / right.(float64), nil
 	case Star:
-		err := checkNumberOperands(&expr.operator, left, right)
+		err := checkNumberOperands(expr.operator, left, right)
 		if err != nil {
 			return nil, err
 		}
 		return left.(float64) * right.(float64), nil
 	case Plus:
-		err := checkNumberOperands(&expr.operator, left, right)
+		err := checkNumberOperands(expr.operator, left, right)
 		if err == nil {
 			return left.(float64) + right.(float64), nil
 		}
 		if isOfType[string](left) || isOfType[string](right) {
 			return stringify(left) + stringify(right), nil
 		}
-		return nil, NewRuntimeError(&expr.operator, "Operands must be numbers or strings.")
+		return nil, NewRuntimeError(expr.operator, "Operands must be numbers or strings.")
 	case Comma:
 		return right, nil
 	default:
-		return nil, NewRuntimeError(&expr.operator, "Unexpected token.")
+		return nil, NewRuntimeError(expr.operator, "Unexpected token.")
 	}
 }
 
@@ -167,7 +167,7 @@ func (interpreter *Interpreter) visitTernaryExpr(expr *ExprTernary) (any, error)
 
 	conditionBool, ok := condition.(bool)
 	if !ok {
-		return nil, NewRuntimeError(&expr.operator, "Condition must evaluate to boolean.")
+		return nil, NewRuntimeError(expr.operator, "Condition must evaluate to boolean.")
 	}
 	if conditionBool {
 		return left, nil
@@ -193,7 +193,7 @@ func (interpreter *Interpreter) visitUnaryExpr(expr *ExprUnary) (any, error) {
 	case Bang:
 		return !isTruthy(right), nil
 	case Minus:
-		err := checkNumberOperand(&expr.operator, right)
+		err := checkNumberOperand(expr.operator, right)
 		if err != nil {
 			return nil, err
 		}

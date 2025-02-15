@@ -143,7 +143,7 @@ func (p *Parser) commaSeparator() (expr Expr, firstErr error) {
 			}
 			break
 		}
-		expr = NewExprBinary(expr, *operator, right)
+		expr = NewExprBinary(expr, operator, right)
 	}
 	if firstErr != nil {
 		return nil, firstErr
@@ -173,7 +173,7 @@ func (p *Parser) ternary() (Expr, error) {
 		} else {
 			return nil, NewError(p.peek(), "Expect :.")
 		}
-		expr = NewExprTernary(*operator, expr, left, right)
+		expr = NewExprTernary(operator, expr, left, right)
 	}
 	return expr, nil
 }
@@ -193,7 +193,7 @@ func (p *Parser) equality() (expr Expr, firstErr error) {
 			}
 			break
 		}
-		expr = NewExprBinary(expr, *operator, right)
+		expr = NewExprBinary(expr, operator, right)
 	}
 	if firstErr != nil {
 		return nil, firstErr
@@ -217,7 +217,7 @@ func (p *Parser) comparison() (expr Expr, firstErr error) {
 			}
 			break
 		}
-		expr = NewExprBinary(expr, *operator, right)
+		expr = NewExprBinary(expr, operator, right)
 	}
 	if firstErr != nil {
 		return nil, firstErr
@@ -241,7 +241,7 @@ func (p *Parser) term() (expr Expr, firstErr error) {
 			}
 			break
 		}
-		expr = NewExprBinary(expr, *operator, right)
+		expr = NewExprBinary(expr, operator, right)
 	}
 	if firstErr != nil {
 		return nil, firstErr
@@ -262,7 +262,7 @@ func (p *Parser) factor() (expr Expr, firstErr error) {
 		if err != nil {
 			return nil, err
 		}
-		expr = NewExprBinary(expr, *operator, right)
+		expr = NewExprBinary(expr, operator, right)
 	}
 	return expr, nil
 }
@@ -274,7 +274,7 @@ func (p *Parser) unary() (Expr, error) {
 		if err != nil {
 			return nil, err
 		}
-		return NewExprUnary(*operator, right), nil
+		return NewExprUnary(operator, right), nil
 	}
 	return p.primary()
 }
@@ -299,7 +299,7 @@ func (p *Parser) primary() (Expr, error) {
 		}
 		return NewExprGrouping(expr), nil
 	} else if p.match(Identifier) {
-		return NewExprVariable(*p.previous()), nil
+		return NewExprVariable(p.previous()), nil
 	}
 	return nil, NewError(p.peek(), "Expect expression.")
 }
