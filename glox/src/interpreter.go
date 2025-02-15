@@ -49,14 +49,15 @@ func (i *Interpreter) execute(stmt Stmt) error {
 	return stmt.accept(i)
 }
 
-func (interpreter *Interpreter) visitVarStmt(stmt *StmtVar) error {
+func (interpreter *Interpreter) visitVarStmt(stmt *StmtVar) (err error) {
+	var value any
 	if stmt.initializer != nil {
-		value, err := interpreter.evaluate(stmt.initializer)
+		value, err = interpreter.evaluate(stmt.initializer)
 		if err != nil {
 			return err
 		}
-		interpreter.enviroment.define(stmt.name.Lexeme, value)
 	}
+	interpreter.enviroment.define(stmt.name.Lexeme, value)
 	return nil
 }
 
