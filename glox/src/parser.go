@@ -4,6 +4,10 @@ import (
 	"fmt"
 )
 
+// program        → statement* EOF ;
+// statement      → exprStmt | printStmt ;
+// exprStmt       → expression ";" ;
+// printStmt      → "print" expression ";" ;
 // expression     → commaSeparator ;
 // commaSeparator → ternary ( ( "," ) ternary )* ;
 // ternary        → ( equality "?" equality ":" )* equality ;
@@ -38,12 +42,47 @@ func NewParser(tokens []Token) *Parser {
 	}
 }
 
-func (p *Parser) parse() (Expr, error) {
-	expr, err := p.expression()
+func (p *Parser) parse() ([]Stmt, error) {
+	statements := []Stmt{}
+	for !p.isAtEnd() {
+		stmt, err := p.statement()
+		if err != nil {
+			return nil, err
+		}
+		statements = append(statements, stmt)
+	}
+	return statements, nil
+}
+
+func (p *Parser) statement() (Stmt, error) {
+	if p.match(Print) {
+		return p.printStatement()
+	}
+	return p.expressionStatement()
+}
+
+func (p *Parser) printStatement() (Stmt, error) {
+	value, err := p.expression()
 	if err != nil {
 		return nil, err
 	}
-	return expr, nil
+	_, err = p.consume(Semicolon, "Expect ';' after value.")
+	if err != nil {
+		return nil, err
+	}
+	return NewStmtPrint(value), nil
+}
+
+func (p *Parser) expressionStatement() (Stmt, error) {
+	value, err := p.expression()
+	if err != nil {
+		return nil, err
+	}
+	_, err = p.consume(Semicolon, "Expect ';' after value.")
+	if err != nil {
+		return nil, err
+	}
+	return NewStmtExpression(value), nil
 }
 
 func (p *Parser) expression() (Expr, error) {

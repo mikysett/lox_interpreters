@@ -72,12 +72,12 @@ func run(source string, interpreter *Interpreter) (err error) {
 	}
 
 	parser := NewParser(scanner.Tokens)
-	expr, err := parser.parse()
+	stmts, err := parser.parse()
 	if err != nil {
 		return err
 	}
 
-	err = interpreter.interpret(expr)
+	err = interpreter.interpret(stmts)
 	if err != nil {
 		return err
 	}
