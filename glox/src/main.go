@@ -46,9 +46,10 @@ func runPrompt() error {
 		if err != nil {
 			return err
 		}
-		// We ignore the error in the interactive loop
-		// Because it won't stop the execution of the prompt
-		_ = run(line)
+		err = run(line)
+		if err != nil {
+			fmt.Println(err)
+		}
 	}
 }
 
@@ -65,6 +66,11 @@ func run(source string) (err error) {
 		return err
 	}
 
-	fmt.Println(NewAstPrinter().print(expr))
-	return err
+	result, err := NewInterpreter().evaluate(expr)
+	if err != nil {
+		return err
+	}
+	fmt.Println(result)
+
+	return nil
 }
