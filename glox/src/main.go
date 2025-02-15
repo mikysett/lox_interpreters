@@ -41,7 +41,7 @@ func runFile(filePath string) error {
 	if err != nil {
 		return err
 	}
-	err = run(string(bytes))
+	err = run(string(bytes), NewInterpreter())
 	if err != nil {
 		fmt.Println(err)
 	}
@@ -49,6 +49,7 @@ func runFile(filePath string) error {
 }
 
 func runPrompt() error {
+	interpreter := NewInterpreter()
 	reader := bufio.NewReader(os.Stdin)
 	for {
 		fmt.Print("> ")
@@ -56,14 +57,14 @@ func runPrompt() error {
 		if err != nil {
 			return err
 		}
-		err = run(line)
+		err = run(line, interpreter)
 		if err != nil {
 			fmt.Println(err)
 		}
 	}
 }
 
-func run(source string) (err error) {
+func run(source string, interpreter *Interpreter) (err error) {
 	scanner := NewScanner(source)
 	err = scanner.scanTokens()
 	if err != nil {
@@ -76,7 +77,7 @@ func run(source string) (err error) {
 		return err
 	}
 
-	err = NewInterpreter().interpret(expr)
+	err = interpreter.interpret(expr)
 	if err != nil {
 		return err
 	}
