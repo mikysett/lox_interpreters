@@ -27,18 +27,37 @@ func NewInterpreter() *Interpreter {
 	return &Interpreter{}
 }
 
-func (i *Interpreter) interpret(expr Expr) error {
-	result, err := expr.accept(i)
-	if err != nil {
-		return err
+func (i *Interpreter) interpret(stmts []Stmt) error {
+	for _, stmt := range stmts {
+		err := i.execute(stmt)
+		if err != nil {
+			return err
+		}
 	}
-
-	fmt.Println(stringify(result))
 	return nil
 }
 
 func (i *Interpreter) evaluate(expr Expr) (any, error) {
 	return expr.accept(i)
+}
+
+func (i *Interpreter) execute(stmt Stmt) error {
+	return stmt.accept(i)
+}
+
+func (interpreter *Interpreter) visitExpressionStmt(stmt *StmtExpression) error {
+	_, err := interpreter.evaluate(stmt.expression)
+	return err
+}
+
+func (interpreter *Interpreter) visitPrintStmt(stmt *StmtPrint) error {
+	v, err := interpreter.evaluate(stmt.expression)
+	if err != nil {
+		return err
+	}
+
+	fmt.Println(stringify(v))
+	return nil
 }
 
 func (interpreter *Interpreter) visitBinaryExpr(expr *ExprBinary) (any, error) {
