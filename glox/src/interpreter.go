@@ -106,18 +106,10 @@ func (interpreter *Interpreter) visitBinaryExpr(expr *ExprBinary) (any, error) {
 		if err == nil {
 			return left.(float64) + right.(float64), nil
 		}
-		leftStr, leftOk := left.(string)
-		rightStr, rightOk := right.(string)
-		if leftOk {
-			if !rightOk {
-				rightStr = stringify(right)
-			}
-		} else if rightOk {
-			leftStr = stringify(left)
-		} else {
-			return nil, NewRuntimeError(&expr.operator, "Operands must be numbers or strings.")
+		if isOfType[string](left) || isOfType[string](right) {
+			return stringify(left) + stringify(right), nil
 		}
-		return leftStr + rightStr, nil
+		return nil, NewRuntimeError(&expr.operator, "Operands must be numbers or strings.")
 	case Comma:
 		return right, nil
 	default:
@@ -177,16 +169,14 @@ func (interpreter *Interpreter) visitUnaryExpr(expr *ExprUnary) (any, error) {
 }
 
 func checkNumberOperand(operator *Token, operand any) error {
-	if _, ok := operand.(float64); !ok {
+	if !isOfType[float64](operand) {
 		return NewRuntimeError(operator, "Operand must be a number.")
 	}
 	return nil
 }
 
 func checkNumberOperands(operator *Token, left, right any) error {
-	_, okLeft := left.(float64)
-	_, okRight := right.(float64)
-	if !okLeft || !okRight {
+	if !isOfType[float64](left) || !isOfType[float64](right) {
 		return NewRuntimeError(operator, "Operands must be numbers.")
 	}
 	return nil
@@ -196,8 +186,8 @@ func isTruthy(input any) bool {
 	if input == nil {
 		return false
 	}
-	if v, ok := input.(bool); ok {
-		return v
+	if isOfType[bool](input) {
+		return input.(bool)
 	}
 	return true
 }
@@ -217,4 +207,9 @@ func stringify(val any) string {
 		return "nil"
 	}
 	return fmt.Sprintf("%v", val)
+}
+
+func isOfType[T any](v any) bool {
+	_, ok := v.(T)
+	return ok
 }
