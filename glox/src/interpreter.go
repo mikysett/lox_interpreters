@@ -61,6 +61,18 @@ func (interpreter *Interpreter) visitVarStmt(stmt *StmtVar) (err error) {
 	return nil
 }
 
+func (interpreter *Interpreter) visitAssignExpr(expr *ExprAssign) (any, error) {
+	val, err := interpreter.evaluate(expr.value)
+	if err != nil {
+		return nil, err
+	}
+	err = interpreter.enviroment.assign(expr.name, val)
+	if err != nil {
+		return nil, err
+	}
+	return val, nil
+}
+
 func (interpreter *Interpreter) visitExpressionStmt(stmt *StmtExpression) error {
 	_, err := interpreter.evaluate(stmt.expression)
 	return err

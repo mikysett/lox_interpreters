@@ -11,6 +11,24 @@ type ExprVisitor interface {
 	visitLiteralExpr(*ExprLiteral) (any, error)
 	visitUnaryExpr(*ExprUnary) (any, error)
 	visitVariableExpr(*ExprVariable) (any, error)
+	visitAssignExpr(*ExprAssign) (any, error)
+}
+
+// Assign   : Token name, Expr value
+type ExprAssign struct {
+	name  *Token
+	value Expr
+}
+
+func NewExprAssign(name *Token, value Expr) *ExprAssign {
+	return &ExprAssign{
+		name:  name,
+		value: value,
+	}
+}
+
+func (expr *ExprAssign) accept(v ExprVisitor) (any, error) {
+	return v.visitAssignExpr(expr)
 }
 
 // Binary   : Expr left, Token operator, Expr right

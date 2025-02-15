@@ -11,7 +11,9 @@ import (
 // exprStmt       → expression ";" ;
 // printStmt      → "print" expression ";" ;
 // expression     → commaSeparator ;
-// commaSeparator → ternary ( ( "," ) ternary )* ;
+// commaSeparator → assignment ( ( "," ) assignment )* ;
+// assignment     → IDENTIFIER "=" assignment
+//                | ternary ;
 // ternary        → ( equality "?" equality ":" )* equality ;
 // equality       → comparison ( ( "!=" | "==" ) comparison )* ;
 // comparison     → term ( ( ">" | ">=" | "<" | "<=" ) term )* ;
@@ -129,14 +131,14 @@ func (p *Parser) expression() (Expr, error) {
 }
 
 func (p *Parser) commaSeparator() (expr Expr, firstErr error) {
-	expr, err := p.ternary()
+	expr, err := p.assignment()
 	if err != nil {
 		firstErr = err
 	}
 
 	for p.match(Comma) {
 		operator := p.previous()
-		right, err := p.ternary()
+		right, err := p.assignment()
 		if err != nil {
 			if firstErr == nil {
 				firstErr = err
@@ -149,6 +151,27 @@ func (p *Parser) commaSeparator() (expr Expr, firstErr error) {
 		return nil, firstErr
 	}
 
+	return expr, nil
+}
+
+func (p *Parser) assignment() (Expr, error) {
+	expr, err := p.ternary()
+	if err != nil {
+		return nil, err
+	}
+
+	if p.match(Equal) {
+		equals := p.previous()
+		value, err := p.assignment()
+		if err != nil {
+			return nil, err
+		}
+
+		if _, ok := expr.(*ExprVariable); !ok {
+			return nil, NewError(equals, "Invalid assignment target.")
+		}
+		return NewExprAssign(expr.(*ExprVariable).name, value), nil
+	}
 	return expr, nil
 }
 

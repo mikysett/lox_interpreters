@@ -16,6 +16,10 @@ func (ast *AstPrinter) print(expr Expr) any {
 	return str
 }
 
+func (ast *AstPrinter) visitAssignExpr(expr *ExprAssign) (any, error) {
+	return ast.parenthesize("= "+expr.name.Lexeme, expr.value)
+}
+
 func (ast *AstPrinter) visitBinaryExpr(expr *ExprBinary) (any, error) {
 	return ast.parenthesize(expr.operator.Lexeme, expr.left, expr.right)
 }
