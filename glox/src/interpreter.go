@@ -27,6 +27,16 @@ func NewInterpreter() *Interpreter {
 	return &Interpreter{}
 }
 
+func (i *Interpreter) interpret(expr Expr) error {
+	result, err := expr.accept(i)
+	if err != nil {
+		return err
+	}
+
+	fmt.Println(stringify(result))
+	return nil
+}
+
 func (i *Interpreter) evaluate(expr Expr) (any, error) {
 	return expr.accept(i)
 }
@@ -191,4 +201,11 @@ func isEqual(left any, right any) bool {
 		return false
 	}
 	return left == right
+}
+
+func stringify(val any) string {
+	if val == nil {
+		return "nil"
+	}
+	return fmt.Sprintf("%v", val)
 }

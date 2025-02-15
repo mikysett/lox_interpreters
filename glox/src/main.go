@@ -66,11 +66,9 @@ func run(source string) (err error) {
 		return err
 	}
 
-	result, err := NewInterpreter().evaluate(expr)
+	err = NewInterpreter().interpret(expr)
 	if err != nil {
 		return err
 	}
-	fmt.Println(result)
-
 	return nil
 }
