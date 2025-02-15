@@ -38,11 +38,11 @@ func NewStmtPrint(expression Expr) *StmtPrint {
 
 // Var        : Token name, Expr initializer
 type StmtVar struct {
-	name        Token
+	name        *Token
 	initializer Expr
 }
 
-func NewStmtVar(name Token, initializer Expr) *StmtVar {
+func NewStmtVar(name *Token, initializer Expr) *StmtVar {
 	return &StmtVar{
 		name:        name,
 		initializer: initializer,

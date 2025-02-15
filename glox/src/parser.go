@@ -36,11 +36,11 @@ func (e *ParseError) Error() string {
 }
 
 type Parser struct {
-	tokens  []Token
+	tokens  []*Token
 	current int
 }
 
-func NewParser(tokens []Token) *Parser {
+func NewParser(tokens []*Token) *Parser {
 	return &Parser{
 		tokens:  tokens,
 		current: 0,
@@ -90,7 +90,7 @@ func (p *Parser) varDeclaration() (stmt Stmt, err error) {
 		return nil, err
 	}
 
-	return NewStmtVar(*name, initializer), nil
+	return NewStmtVar(name, initializer), nil
 }
 
 func (p *Parser) statement() (Stmt, error) {
@@ -322,7 +322,7 @@ func (p *Parser) advance() *Token {
 }
 
 func (p *Parser) previous() *Token {
-	return &p.tokens[p.current-1]
+	return p.tokens[p.current-1]
 }
 
 func (p *Parser) check(tokenType TokenType) bool {
@@ -333,7 +333,7 @@ func (p *Parser) check(tokenType TokenType) bool {
 }
 
 func (p *Parser) peek() *Token {
-	return &p.tokens[p.current]
+	return p.tokens[p.current]
 }
 
 func (p *Parser) isAtEnd() bool {

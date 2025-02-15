@@ -7,7 +7,7 @@ import (
 
 type Scanner struct {
 	Source   string
-	Tokens   []Token
+	Tokens   []*Token
 	keywords map[string]TokenType
 	start    int
 	current  int
@@ -38,7 +38,7 @@ var keywords = map[string]TokenType{
 func NewScanner(source string) Scanner {
 	return Scanner{
 		Source:   source,
-		Tokens:   []Token{},
+		Tokens:   []*Token{},
 		keywords: keywords,
 		line:     1,
 	}
@@ -53,7 +53,7 @@ func (scanner *Scanner) scanTokens() (err error) {
 		}
 	}
 
-	scanner.Tokens = append(scanner.Tokens, Token{
+	scanner.Tokens = append(scanner.Tokens, &Token{
 		Type:    EOF,
 		Lexeme:  "",
 		Literal: nil,
@@ -276,7 +276,7 @@ func (scanner *Scanner) blockComment() error {
 }
 
 func (scanner *Scanner) addTokenWithLiteral(tokenType TokenType, literal any) {
-	scanner.Tokens = append(scanner.Tokens, Token{
+	scanner.Tokens = append(scanner.Tokens, &Token{
 		Type:    tokenType,
 		Literal: literal,
 		Lexeme:  scanner.Source[scanner.start:scanner.current],
