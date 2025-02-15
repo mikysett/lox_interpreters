@@ -91,6 +91,9 @@ func (interpreter *Interpreter) visitBinaryExpr(expr *ExprBinary) (any, error) {
 		if err != nil {
 			return nil, err
 		}
+		if right.(float64) == 0 {
+			return nil, NewRuntimeError(&expr.operator, "Division by 0.")
+		}
 		return left.(float64) / right.(float64), nil
 	case Star:
 		err := checkNumberOperands(&expr.operator, left, right)
