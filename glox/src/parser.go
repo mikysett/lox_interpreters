@@ -41,7 +41,6 @@ func NewParser(tokens []Token) *Parser {
 func (p *Parser) parse() (Expr, error) {
 	expr, err := p.expression()
 	if err != nil {
-		fmt.Println(err)
 		return nil, err
 	}
 	return expr, nil
@@ -82,6 +81,7 @@ func (p *Parser) ternary() (Expr, error) {
 	}
 
 	for p.match(QuestionMark) {
+		operator := p.previous()
 		left, err := p.ternary()
 		if err != nil {
 			return nil, err
@@ -95,7 +95,7 @@ func (p *Parser) ternary() (Expr, error) {
 		} else {
 			return nil, NewError(p.peek(), "Expect :.")
 		}
-		expr = NewExprTernary(expr, left, right)
+		expr = NewExprTernary(*operator, expr, left, right)
 	}
 	return expr, nil
 }
