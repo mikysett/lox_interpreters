@@ -1,15 +1,15 @@
 package main
 
 type Expr interface {
-	accept(Visitor) any
+	accept(Visitor) (any, error)
 }
 
 type Visitor interface {
-	visitBinaryExpr(*ExprBinary) any
-	visitTernaryExpr(*ExprTernary) any
-	visitGroupingExpr(*ExprGrouping) any
-	visitLiteralExpr(*ExprLiteral) any
-	visitUnaryExpr(*ExprUnary) any
+	visitBinaryExpr(*ExprBinary) (any, error)
+	visitTernaryExpr(*ExprTernary) (any, error)
+	visitGroupingExpr(*ExprGrouping) (any, error)
+	visitLiteralExpr(*ExprLiteral) (any, error)
+	visitUnaryExpr(*ExprUnary) (any, error)
 }
 
 // Binary   : Expr left, Token operator, Expr right
@@ -27,26 +27,28 @@ func NewExprBinary(left Expr, operator Token, right Expr) *ExprBinary {
 	}
 }
 
-func (expr *ExprBinary) accept(v Visitor) any {
+func (expr *ExprBinary) accept(v Visitor) (any, error) {
 	return v.visitBinaryExpr(expr)
 }
 
 // Binary   : Expr left, Token operator, Expr right
 type ExprTernary struct {
+	operator  Token
 	condition Expr
 	left      Expr
 	right     Expr
 }
 
-func NewExprTernary(condition Expr, left Expr, right Expr) *ExprTernary {
+func NewExprTernary(operator Token, condition Expr, left Expr, right Expr) *ExprTernary {
 	return &ExprTernary{
+		operator:  operator,
 		condition: condition,
 		left:      left,
 		right:     right,
 	}
 }
 
-func (expr *ExprTernary) accept(v Visitor) any {
+func (expr *ExprTernary) accept(v Visitor) (any, error) {
 	return v.visitTernaryExpr(expr)
 }
 
@@ -59,7 +61,7 @@ func NewExprGrouping(expression Expr) *ExprGrouping {
 	return &ExprGrouping{expression: expression}
 }
 
-func (expr *ExprGrouping) accept(v Visitor) any {
+func (expr *ExprGrouping) accept(v Visitor) (any, error) {
 	return v.visitGroupingExpr(expr)
 }
 
@@ -72,7 +74,7 @@ func NewExprLiteral(value any) *ExprLiteral {
 	return &ExprLiteral{value: value}
 }
 
-func (expr *ExprLiteral) accept(v Visitor) any {
+func (expr *ExprLiteral) accept(v Visitor) (any, error) {
 	return v.visitLiteralExpr(expr)
 }
 
@@ -89,6 +91,6 @@ func NewExprUnary(operator Token, right Expr) *ExprUnary {
 	}
 }
 
-func (expr *ExprUnary) accept(v Visitor) any {
+func (expr *ExprUnary) accept(v Visitor) (any, error) {
 	return v.visitUnaryExpr(expr)
 }

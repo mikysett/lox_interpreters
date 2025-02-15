@@ -12,51 +12,53 @@ func NewAstPrinter() *AstPrinter {
 }
 
 func (ast *AstPrinter) print(expr Expr) any {
-	return expr.accept(ast)
+	str, _ := expr.accept(ast)
+	return str
 }
 
-func (ast *AstPrinter) visitBinaryExpr(expr *ExprBinary) any {
+func (ast *AstPrinter) visitBinaryExpr(expr *ExprBinary) (any, error) {
 	return ast.parenthesize(expr.operator.Lexeme, expr.left, expr.right)
 }
 
-func (ast *AstPrinter) visitTernaryExpr(expr *ExprTernary) any {
+func (ast *AstPrinter) visitTernaryExpr(expr *ExprTernary) (any, error) {
 	return ast.parenthesize("?:", expr.condition, expr.left, expr.right)
 }
 
-func (ast *AstPrinter) visitGroupingExpr(expr *ExprGrouping) any {
+func (ast *AstPrinter) visitGroupingExpr(expr *ExprGrouping) (any, error) {
 	return ast.parenthesize("group", expr.expression)
 }
 
-func (ast *AstPrinter) visitLiteralExpr(expr *ExprLiteral) any {
+func (ast *AstPrinter) visitLiteralExpr(expr *ExprLiteral) (any, error) {
 	if expr.value == nil {
-		return "nil"
+		return "nil", nil
 	}
 	switch expr.value.(type) {
 	case string:
-		return fmt.Sprintf("\"%v\"", expr.value)
+		return fmt.Sprintf("\"%v\"", expr.value), nil
 	case float64:
-		return fmt.Sprintf("%.1f", expr.value)
+		return fmt.Sprintf("%.1f", expr.value), nil
 	default:
-		return fmt.Sprintf("%v", expr.value)
+		return fmt.Sprintf("%v", expr.value), nil
 	}
 }
 
-func (ast *AstPrinter) visitUnaryExpr(expr *ExprUnary) any {
+func (ast *AstPrinter) visitUnaryExpr(expr *ExprUnary) (any, error) {
 	return ast.parenthesize(expr.operator.Lexeme, expr.right)
 }
 
-func (ast *AstPrinter) parenthesize(name string, exprs ...Expr) string {
+func (ast *AstPrinter) parenthesize(name string, exprs ...Expr) (string, error) {
 	var builder strings.Builder
 	builder.WriteByte('(')
 	builder.WriteString(name)
 	for _, expr := range exprs {
 		builder.WriteByte(' ')
-		if v, ok := expr.accept(ast).(string); ok {
+		astResult, _ := expr.accept(ast)
+		if v, ok := astResult.(string); ok {
 			builder.WriteString(v)
 		} else {
 			panic("Unreachable non string return in AstPrinter!")
 		}
 	}
 	builder.WriteByte(')')
-	return builder.String()
+	return builder.String(), nil
 }
