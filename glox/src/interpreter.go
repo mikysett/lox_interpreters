@@ -105,7 +105,13 @@ func (interpreter *Interpreter) visitBinaryExpr(expr *ExprBinary) (any, error) {
 		}
 		leftStr, leftOk := left.(string)
 		rightStr, rightOk := right.(string)
-		if !rightOk || !leftOk {
+		if leftOk {
+			if !rightOk {
+				rightStr = stringify(right)
+			}
+		} else if rightOk {
+			leftStr = stringify(left)
+		} else {
 			return nil, NewRuntimeError(&expr.operator, "Operands must be numbers or strings.")
 		}
 		return leftStr + rightStr, nil
