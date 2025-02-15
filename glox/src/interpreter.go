@@ -21,10 +21,14 @@ func NewRuntimeError(token *Token, message string) *RuntimeError {
 	}
 }
 
-type Interpreter struct{}
+type Interpreter struct {
+	enviroment *Environment
+}
 
 func NewInterpreter() *Interpreter {
-	return &Interpreter{}
+	return &Interpreter{
+		enviroment: NewEnvironment(),
+	}
 }
 
 func (i *Interpreter) interpret(stmts []Stmt) error {
@@ -43,6 +47,17 @@ func (i *Interpreter) evaluate(expr Expr) (any, error) {
 
 func (i *Interpreter) execute(stmt Stmt) error {
 	return stmt.accept(i)
+}
+
+func (interpreter *Interpreter) visitVarStmt(stmt *StmtVar) error {
+	if stmt.initializer != nil {
+		value, err := interpreter.evaluate(stmt.initializer)
+		if err != nil {
+			return err
+		}
+		interpreter.enviroment.define(stmt.name.Lexeme, value)
+	}
+	return nil
 }
 
 func (interpreter *Interpreter) visitExpressionStmt(stmt *StmtExpression) error {
@@ -185,6 +200,10 @@ func (interpreter *Interpreter) visitUnaryExpr(expr *ExprUnary) (any, error) {
 		return -right.(float64), nil
 	}
 	panic("Unreachable!")
+}
+
+func (interpreter *Interpreter) visitVariableExpr(expr *ExprVariable) (any, error) {
+	return interpreter.enviroment.get(expr.name)
 }
 
 func checkNumberOperand(operator *Token, operand any) error {

@@ -10,6 +10,7 @@ type ExprVisitor interface {
 	visitGroupingExpr(*ExprGrouping) (any, error)
 	visitLiteralExpr(*ExprLiteral) (any, error)
 	visitUnaryExpr(*ExprUnary) (any, error)
+	visitVariableExpr(*ExprVariable) (any, error)
 }
 
 // Binary   : Expr left, Token operator, Expr right
@@ -31,7 +32,7 @@ func (expr *ExprBinary) accept(v ExprVisitor) (any, error) {
 	return v.visitBinaryExpr(expr)
 }
 
-// Binary   : Expr left, Token operator, Expr right
+// Ternary   : Expr condition, Token operator, Expr left, Expr right
 type ExprTernary struct {
 	operator  Token
 	condition Expr
@@ -93,4 +94,19 @@ func NewExprUnary(operator Token, right Expr) *ExprUnary {
 
 func (expr *ExprUnary) accept(v ExprVisitor) (any, error) {
 	return v.visitUnaryExpr(expr)
+}
+
+// "Variable : Token name"
+type ExprVariable struct {
+	name Token
+}
+
+func NewExprVariable(name Token) *ExprVariable {
+	return &ExprVariable{
+		name: name,
+	}
+}
+
+func (expr *ExprVariable) accept(v ExprVisitor) (any, error) {
+	return v.visitVariableExpr(expr)
 }

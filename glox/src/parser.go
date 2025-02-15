@@ -4,7 +4,9 @@ import (
 	"fmt"
 )
 
-// program        → statement* EOF ;
+// program        → declaration* EOF ;
+// declaration    → varDecl | statement ;
+// varDecl        → "var" IDENTIFIER ( "=" expression )? ";" ;
 // statement      → exprStmt | printStmt ;
 // exprStmt       → expression ";" ;
 // printStmt      → "print" expression ";" ;
@@ -16,7 +18,10 @@ import (
 // term           → factor ( ( "-" | "+" ) factor )* ;
 // factor         → unary ( ( "/" | "*" ) unary )* ;
 // unary          → ( "!" | "-" ) unary | primary ;
-// primary        → NUMBER | STRING | "true" | "false" | "nil" | "(" expression ")" ;
+// primary        → "true" | "false" | "nil"
+//                | NUMBER | STRING
+//                | "(" expression ")"
+//                | IDENTIFIER ;
 
 type ParseError struct {
 	token   *Token
@@ -45,13 +50,47 @@ func NewParser(tokens []Token) *Parser {
 func (p *Parser) parse() ([]Stmt, error) {
 	statements := []Stmt{}
 	for !p.isAtEnd() {
-		stmt, err := p.statement()
+		stmt, err := p.declaration()
 		if err != nil {
 			return nil, err
 		}
 		statements = append(statements, stmt)
 	}
 	return statements, nil
+}
+
+func (p *Parser) declaration() (stmt Stmt, err error) {
+	defer func() {
+		// In case of error parser moves to end of statement
+		// So it can catch further errors in one pass
+		if err != nil {
+			p.synchronize()
+		}
+	}()
+	if p.match(Var) {
+		return p.varDeclaration()
+	}
+	return p.statement()
+}
+
+func (p *Parser) varDeclaration() (stmt Stmt, err error) {
+	name, err := p.consume(Identifier, "Expect variable name.")
+	if err != nil {
+		return nil, err
+	}
+	var initializer Expr
+	if p.match(Equal) {
+		initializer, err = p.expression()
+		if err != nil {
+			return nil, err
+		}
+	}
+	_, err = p.consume(Semicolon, "Expect ';' after variable declaration.")
+	if err != nil {
+		return nil, err
+	}
+
+	return NewStmtVar(*name, initializer), nil
 }
 
 func (p *Parser) statement() (Stmt, error) {
@@ -259,6 +298,8 @@ func (p *Parser) primary() (Expr, error) {
 			return nil, err
 		}
 		return NewExprGrouping(expr), nil
+	} else if p.match(Identifier) {
+		return NewExprVariable(*p.previous()), nil
 	}
 	return nil, NewError(p.peek(), "Expect expression.")
 }
