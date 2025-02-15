@@ -2,8 +2,12 @@ package main
 
 import (
 	"bufio"
+	"flag"
 	"fmt"
+	"log"
 	"os"
+	"runtime"
+	"runtime/pprof"
 )
 
 // Check [sysexits.h](https://man.freebsd.org/cgi/man.cgi?query=sysexits&apropos=0&sektion=0&manpath=FreeBSD+4.3-RELEASE&format=html)
@@ -13,13 +17,15 @@ const (
 	exRuntimeErr = 70
 )
 
+var memprofile = flag.String("memprofile", "", "write memory profile to `file`")
+
 func main() {
-	args := os.Args
-	if len(args) > 2 {
+	flag.Parse()
+	if len(flag.Args()) > 1 {
 		println("Usage: glox [script]")
 		os.Exit(exUsage)
-	} else if len(args) == 2 {
-		err := runFile(args[1])
+	} else if flag.Arg(0) != "" {
+		err := runFile(flag.Arg(0))
 		if err != nil {
 			switch err.(type) {
 			case *RuntimeError:
@@ -33,6 +39,21 @@ func main() {
 		if err != nil {
 			os.Exit(exDataErr)
 		}
+	}
+	if *memprofile != "" {
+		saveMemProfile(*memprofile)
+	}
+}
+
+func saveMemProfile(fileName string) {
+	f, err := os.Create(fileName)
+	if err != nil {
+		log.Fatal("could not create memory profile: ", err)
+	}
+	defer f.Close()
+	runtime.GC()
+	if err := pprof.Lookup("allocs").WriteTo(f, 0); err != nil {
+		log.Fatal("could not write memory profile: ", err)
 	}
 }
 
