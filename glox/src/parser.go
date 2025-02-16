@@ -7,7 +7,11 @@ import (
 // program        → declaration* EOF ;
 // declaration    → varDecl | statement ;
 // varDecl        → "var" IDENTIFIER ( "=" expression )? ";" ;
-// statement      → exprStmt | printStmt ;
+// statement      → exprStmt
+//                | printStmt
+//                | block ;
+//
+// block          → "{" declaration* "}" ;
 // exprStmt       → expression ";" ;
 // printStmt      → "print" expression ";" ;
 // expression     → commaSeparator ;
@@ -32,9 +36,9 @@ type ParseError struct {
 
 func (e *ParseError) Error() string {
 	if e.token.Type == EOF {
-		return fmt.Sprintf("Line %v: at end. %v", e.token.Line, e.message)
+		return fmt.Sprintf("[line %v] Error at end: %v", e.token.Line, e.message)
 	}
-	return fmt.Sprintf("Line %v: at '%v'. %v", e.token.Line, e.token.Lexeme, e.message)
+	return fmt.Sprintf("[line %v] Error at '%v': %v", e.token.Line, e.token.Lexeme, e.message)
 }
 
 type Parser struct {
@@ -99,7 +103,23 @@ func (p *Parser) statement() (Stmt, error) {
 	if p.match(Print) {
 		return p.printStatement()
 	}
+	if p.match(LeftBrace) {
+		return p.blockStatement()
+	}
 	return p.expressionStatement()
+}
+
+func (p *Parser) blockStatement() (Stmt, error) {
+	statements := []Stmt{}
+	for !p.match(RightBrace) && !p.isAtEnd() {
+		stmt, err := p.declaration()
+		if err != nil {
+			return nil, err
+		}
+		statements = append(statements, stmt)
+	}
+	p.consume(RightBrace, "Expect '}' after block.")
+	return NewStmtBlock(statements), nil
 }
 
 func (p *Parser) printStatement() (Stmt, error) {

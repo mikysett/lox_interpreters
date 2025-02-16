@@ -8,6 +8,22 @@ type StmtVisitor interface {
 	visitExpressionStmt(*StmtExpression) error
 	visitPrintStmt(*StmtPrint) error
 	visitVarStmt(*StmtVar) error
+	visitBlockStmt(*StmtBlock) error
+}
+
+// Block      : List<Stmt> statements
+type StmtBlock struct {
+	block []Stmt
+}
+
+func NewStmtBlock(block []Stmt) *StmtBlock {
+	return &StmtBlock{
+		block: block,
+	}
+}
+
+func (stmt *StmtBlock) accept(v StmtVisitor) error {
+	return v.visitBlockStmt(stmt)
 }
 
 // Expression : Expr expression

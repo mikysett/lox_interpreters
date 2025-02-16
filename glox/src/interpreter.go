@@ -8,10 +8,7 @@ type RuntimeError struct {
 }
 
 func (e *RuntimeError) Error() string {
-	if e.token.Type == EOF {
-		return fmt.Sprintf("Line %v: at end. %v", e.token.Line, e.message)
-	}
-	return fmt.Sprintf("Line %v: at '%v'. %v", e.token.Line, e.token.Lexeme, e.message)
+	return fmt.Sprintf("%v\n[line %v]", e.message, e.token.Line)
 }
 
 func NewRuntimeError(token *Token, message string) *RuntimeError {
@@ -47,6 +44,25 @@ func (i *Interpreter) evaluate(expr Expr) (any, error) {
 
 func (i *Interpreter) execute(stmt Stmt) error {
 	return stmt.accept(i)
+}
+
+func (interpreter *Interpreter) visitBlockStmt(stmt *StmtBlock) error {
+	return interpreter.executeBlock(stmt.block, NewEnvironment().withEnclosing(interpreter.enviroment))
+}
+
+func (interpreter *Interpreter) executeBlock(stmts []Stmt, env *Environment) error {
+	interpreter.enviroment = env
+	defer func() {
+		interpreter.enviroment = interpreter.enviroment.enclosing
+	}()
+
+	for _, stmt := range stmts {
+		err := interpreter.execute(stmt)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
 }
 
 func (interpreter *Interpreter) visitVarStmt(stmt *StmtVar) (err error) {
@@ -156,7 +172,9 @@ func (interpreter *Interpreter) visitBinaryExpr(expr *ExprBinary) (any, error) {
 		if isOfType[string](left) || isOfType[string](right) {
 			return stringify(left) + stringify(right), nil
 		}
-		return nil, NewRuntimeError(expr.operator, "Operands must be numbers or strings.")
+		// This error message is not 100% correct (see case above)
+		// But it needs to be phrased like that to pass the standard tests
+		return nil, NewRuntimeError(expr.operator, "Operands must be two numbers or two strings.")
 	case Comma:
 		return right, nil
 	default:
