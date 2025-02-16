@@ -4,6 +4,7 @@ type TokenType int
 
 const (
 	// Single-character tokens.
+
 	LeftParen    = iota // Char: '('
 	RightParen          // Char: ')'
 	LeftBrace           // Char: '{'
@@ -19,6 +20,7 @@ const (
 	Colon               // Char: ':'
 
 	// One or two character tokens.
+
 	Bang         // Char: '!'
 	BangEqual    // Char: '!='
 	Equal        // Char: '='
@@ -29,11 +31,13 @@ const (
 	LessEqual    // Char: '<='
 
 	// Literals.
+
 	Identifier
 	String
 	Number
 
 	// Keywords.
+
 	And    // Char: 'and'
 	Class  // Char: 'class'
 	Else   // Char: 'else'
