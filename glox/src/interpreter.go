@@ -72,6 +72,8 @@ func (interpreter *Interpreter) visitVarStmt(stmt *StmtVar) (err error) {
 		if err != nil {
 			return err
 		}
+	} else {
+		value = Uninitialized{}
 	}
 	interpreter.enviroment.define(stmt.name.Lexeme, value)
 	return nil

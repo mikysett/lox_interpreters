@@ -6,6 +6,8 @@ type Environment struct {
 	values    map[string]any
 }
 
+type Uninitialized struct{}
+
 func NewEnvironment() *Environment {
 	return &Environment{
 		enclosing: nil,
@@ -35,12 +37,14 @@ func (env *Environment) assign(name *Token, value any) error {
 }
 
 func (env *Environment) get(name *Token) (any, error) {
-	v, ok := env.values[name.Lexeme]
-	if ok {
-		return v, nil
-	}
-	if env.enclosing != nil {
+	value, ok := env.values[name.Lexeme]
+	if !ok && env.enclosing != nil {
 		return env.enclosing.get(name)
+	} else if ok {
+		if isOfType[Uninitialized](value) {
+			return nil, NewRuntimeError(name, "Uninitialized variable '"+name.Lexeme+"'.")
+		}
+		return value, nil
 	}
 	return nil, NewRuntimeError(name, "Undefined variable '"+name.Lexeme+"'.")
 }
