@@ -1,9 +1,12 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+	"os"
+)
 
 func report(line int, where, message string) {
-	fmt.Printf("[line %v] Error%v: %v\n", line, where, message)
+	fmt.Fprintf(os.Stderr, "[line %v] Error%v: %v\n", line, where, message)
 }
 
 func IsDigit(c byte) bool {
