@@ -11,6 +11,7 @@ func NewAstPrinter() *AstPrinter {
 	return &AstPrinter{}
 }
 
+// TODO: Update the printer to accept also Statements
 func (ast *AstPrinter) print(expr Expr) any {
 	str, _ := expr.accept(ast)
 	return str
