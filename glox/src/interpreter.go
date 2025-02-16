@@ -96,6 +96,21 @@ func (interpreter *Interpreter) visitExpressionStmt(stmt *StmtExpression) error 
 	return err
 }
 
+func (interpreter *Interpreter) visitIfStmt(stmt *StmtIf) (err error) {
+	eval, err := interpreter.evaluate(stmt.condition)
+	if err != nil {
+		return err
+	}
+
+	if isTruthy(eval) {
+		return interpreter.execute(stmt.thenBranch)
+	}
+	if stmt.elseBranch != nil {
+		return interpreter.execute(stmt.elseBranch)
+	}
+	return nil
+}
+
 func (interpreter *Interpreter) visitPrintStmt(stmt *StmtPrint) error {
 	v, err := interpreter.evaluate(stmt.expression)
 	if err != nil {
