@@ -140,10 +140,13 @@ func (p *Parser) expressionStatement() (Stmt, error) {
 		return nil, err
 	}
 	_, err = p.consume(Semicolon, "Expect ';' after value.")
-	if err != nil {
-		return nil, err
+	if err == nil {
+		return NewStmtExpression(value), nil
+	} else if isReplMode && p.isAtEnd() {
+		// Mimic last expression evaluation in the REPL when no `;` is found
+		return NewStmtPrint(value), nil
 	}
-	return NewStmtExpression(value), nil
+	return nil, err
 }
 
 func (p *Parser) expression() (Expr, error) {

@@ -17,6 +17,10 @@ const (
 	exRuntimeErr = 70
 )
 
+// When `true` expressions will be evaluated in the REPL instead of throwing an error
+// For example: `3 < 2` will print `false` in the REPL and throw an error in a file.
+var isReplMode = false
+
 var memprofile = flag.String("memprofile", "", "write memory profile to `file`")
 
 func main() {
@@ -69,6 +73,7 @@ func runFile(filePath string) error {
 }
 
 func runPrompt() error {
+	isReplMode = true
 	interpreter := NewInterpreter()
 	reader := bufio.NewReader(os.Stdin)
 	for {
