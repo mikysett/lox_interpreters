@@ -32,6 +32,9 @@ func main() {
 				os.Exit(exRuntimeErr)
 			case *ParseError:
 				os.Exit(exDataErr)
+			// Scanner
+			default:
+				os.Exit(exDataErr)
 			}
 		}
 	} else {
@@ -62,11 +65,7 @@ func runFile(filePath string) error {
 	if err != nil {
 		return err
 	}
-	err = run(string(bytes), NewInterpreter())
-	if err != nil {
-		fmt.Println(err)
-	}
-	return err
+	return run(string(bytes), NewInterpreter())
 }
 
 func runPrompt() error {
@@ -78,10 +77,7 @@ func runPrompt() error {
 		if err != nil {
 			return err
 		}
-		err = run(line, interpreter)
-		if err != nil {
-			fmt.Println(err)
-		}
+		_ = run(line, interpreter)
 	}
 }
 
@@ -95,11 +91,13 @@ func run(source string, interpreter *Interpreter) (err error) {
 	parser := NewParser(scanner.Tokens)
 	stmts, err := parser.parse()
 	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
 		return err
 	}
 
 	err = interpreter.interpret(stmts)
 	if err != nil {
+		fmt.Fprintln(os.Stderr, err)
 		return err
 	}
 	return nil
