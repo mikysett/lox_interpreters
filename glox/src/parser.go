@@ -11,7 +11,6 @@ import (
 //                | ifStmt
 //                | printStmt
 //                | block ;
-//
 
 // if             → if "(" expression ")" statement ;
 //                ( "else" statement )+ ;
@@ -22,7 +21,9 @@ import (
 // commaSeparator → assignment ( ( "," ) assignment )* ;
 // assignment     → IDENTIFIER "=" assignment
 //                | ternary ;
-// ternary        → ( equality "?" equality ":" )* equality ;
+// ternary        → ( logic_or "?" logic_or ":" )* logic_or ;
+// logic_or       → logic_and ( "or" logic_and )* ;
+// logic_and      → equality ( "and" equality )* ;
 // equality       → comparison ( ( "!=" | "==" ) comparison )* ;
 // comparison     → term ( ( ">" | ">=" | "<" | "<=" ) term )* ;
 // term           → factor ( ( "-" | "+" ) factor )* ;
@@ -236,7 +237,7 @@ func (p *Parser) assignment() (Expr, error) {
 }
 
 func (p *Parser) ternary() (Expr, error) {
-	expr, err := p.equality()
+	expr, err := p.logical_or()
 	if err != nil {
 		return nil, err
 	}
@@ -257,6 +258,40 @@ func (p *Parser) ternary() (Expr, error) {
 			return nil, NewError(p.peek(), "Expect :.")
 		}
 		expr = NewExprTernary(operator, expr, left, right)
+	}
+	return expr, nil
+}
+
+func (p *Parser) logical_or() (Expr, error) {
+	expr, err := p.logical_and()
+	if err != nil {
+		return nil, err
+	}
+
+	for p.match(Or) {
+		operator := p.previous()
+		right, err := p.logical_and()
+		if err != nil {
+			return nil, err
+		}
+		expr = NewExprLogical(expr, operator, right)
+	}
+	return expr, nil
+}
+
+func (p *Parser) logical_and() (Expr, error) {
+	expr, err := p.equality()
+	if err != nil {
+		return nil, err
+	}
+
+	for p.match(And) {
+		operator := p.previous()
+		right, err := p.equality()
+		if err != nil {
+			return nil, err
+		}
+		expr = NewExprLogical(expr, operator, right)
 	}
 	return expr, nil
 }

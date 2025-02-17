@@ -12,6 +12,7 @@ type ExprVisitor interface {
 	visitUnaryExpr(*ExprUnary) (any, error)
 	visitVariableExpr(*ExprVariable) (any, error)
 	visitAssignExpr(*ExprAssign) (any, error)
+	visitLogicalExpr(*ExprLogical) (any, error)
 }
 
 // Assign   : Token name, Expr value
@@ -95,6 +96,26 @@ func NewExprLiteral(value any) *ExprLiteral {
 
 func (expr *ExprLiteral) accept(v ExprVisitor) (any, error) {
 	return v.visitLiteralExpr(expr)
+}
+
+// Logical  : Expr left, Token operator, Expr right
+
+type ExprLogical struct {
+	left     Expr
+	operator *Token
+	right    Expr
+}
+
+func NewExprLogical(left Expr, operator *Token, right Expr) *ExprLogical {
+	return &ExprLogical{
+		left:     left,
+		operator: operator,
+		right:    right,
+	}
+}
+
+func (expr *ExprLogical) accept(v ExprVisitor) (any, error) {
+	return v.visitLogicalExpr(expr)
 }
 
 // Unary    : Token operator, Expr right

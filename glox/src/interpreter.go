@@ -223,6 +223,23 @@ func (interpreter *Interpreter) visitTernaryExpr(expr *ExprTernary) (any, error)
 	return right, nil
 }
 
+func (interpreter *Interpreter) visitLogicalExpr(expr *ExprLogical) (any, error) {
+	left, err := interpreter.evaluate(expr.left)
+	if err != nil {
+		return nil, err
+	}
+
+	if expr.operator.Type == And {
+		if !isTruthy(left) {
+			return left, nil
+		}
+	} else if isTruthy(left) { // Logical `Or`
+		return left, nil
+	}
+
+	return interpreter.evaluate(expr.right)
+}
+
 func (interpreter *Interpreter) visitGroupingExpr(expr *ExprGrouping) (any, error) {
 	return interpreter.evaluate(expr.expression)
 }
