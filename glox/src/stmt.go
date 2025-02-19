@@ -10,6 +10,7 @@ type StmtVisitor interface {
 	visitPrintStmt(*StmtPrint) error
 	visitVarStmt(*StmtVar) error
 	visitBlockStmt(*StmtBlock) error
+	visitWhileStmt(*StmtWhile) error
 }
 
 // Block      : List<Stmt> statements
@@ -72,6 +73,10 @@ func NewStmtPrint(expression Expr) *StmtPrint {
 	}
 }
 
+func (expr *StmtPrint) accept(v StmtVisitor) error {
+	return v.visitPrintStmt(expr)
+}
+
 // Var        : Token name, Expr initializer
 type StmtVar struct {
 	name        *Token
@@ -89,6 +94,19 @@ func (stmt *StmtVar) accept(v StmtVisitor) error {
 	return v.visitVarStmt(stmt)
 }
 
-func (expr *StmtPrint) accept(v StmtVisitor) error {
-	return v.visitPrintStmt(expr)
+// While      : Expr condition, Stmt body
+type StmtWhile struct {
+	condition Expr
+	body      Stmt
+}
+
+func NewStmtWhile(condition Expr, body Stmt) *StmtWhile {
+	return &StmtWhile{
+		condition: condition,
+		body:      body,
+	}
+}
+
+func (stmt *StmtWhile) accept(v StmtVisitor) error {
+	return v.visitWhileStmt(stmt)
 }

@@ -111,6 +111,20 @@ func (interpreter *Interpreter) visitIfStmt(stmt *StmtIf) (err error) {
 	return nil
 }
 
+func (interpreter *Interpreter) visitWhileStmt(stmt *StmtWhile) (err error) {
+	for eval, err := interpreter.evaluate(stmt.condition); isTruthy(eval); eval, err = interpreter.evaluate(stmt.condition) {
+		if err != nil {
+			return err
+		}
+
+		err = interpreter.execute(stmt.body)
+		if err != nil {
+			return err
+		}
+	}
+	return nil
+}
+
 func (interpreter *Interpreter) visitPrintStmt(stmt *StmtPrint) error {
 	v, err := interpreter.evaluate(stmt.expression)
 	if err != nil {

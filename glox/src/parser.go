@@ -10,8 +10,10 @@ import (
 // statement      → exprStmt
 //                | ifStmt
 //                | printStmt
+//                | whileStmt
 //                | block ;
 
+// if             → while "(" expression ")" statement ;
 // if             → if "(" expression ")" statement ;
 //                ( "else" statement )+ ;
 // block          → "{" declaration* "}" ;
@@ -108,6 +110,9 @@ func (p *Parser) statement() (Stmt, error) {
 	if p.match(If) {
 		return p.ifStatement()
 	}
+	if p.match(While) {
+		return p.whileStatement()
+	}
 	if p.match(Print) {
 		return p.printStatement()
 	}
@@ -142,6 +147,26 @@ func (p *Parser) ifStatement() (Stmt, error) {
 		}
 	}
 	return NewStmtIf(condition, thenBranch, elseBranch), nil
+}
+
+func (p *Parser) whileStatement() (Stmt, error) {
+	_, err := p.consume(LeftParen, "Expect '(' after 'while'.")
+	if err != nil {
+		return nil, err
+	}
+	condition, err := p.expression()
+	if err != nil {
+		return nil, err
+	}
+	_, err = p.consume(RightParen, "Expect ')' after while condition.")
+	if err != nil {
+		return nil, err
+	}
+	body, err := p.statement()
+	if err != nil {
+		return nil, err
+	}
+	return NewStmtWhile(condition, body), nil
 }
 
 func (p *Parser) blockStatement() (Stmt, error) {
