@@ -11,9 +11,13 @@ import (
 //                | ifStmt
 //                | printStmt
 //                | whileStmt
+//                | forStmt
 //                | block ;
 
-// if             → while "(" expression ")" statement ;
+// while          → while "(" expression ")" statement ;
+// for            → for "(" ( varDecl | exprStmt ";" )
+//                  expression? ";"
+//                  expression? ")" statement ;
 // if             → if "(" expression ")" statement ;
 //                ( "else" statement )+ ;
 // block          → "{" declaration* "}" ;
@@ -113,6 +117,9 @@ func (p *Parser) statement() (Stmt, error) {
 	if p.match(While) {
 		return p.whileStatement()
 	}
+	if p.match(For) {
+		return p.forStatement()
+	}
 	if p.match(Print) {
 		return p.printStatement()
 	}
@@ -167,6 +174,77 @@ func (p *Parser) whileStatement() (Stmt, error) {
 		return nil, err
 	}
 	return NewStmtWhile(condition, body), nil
+}
+
+func (p *Parser) forStatement() (Stmt, error) {
+	_, err := p.consume(LeftParen, "Expect '(' after 'for'.")
+	if err != nil {
+		return nil, err
+	}
+
+	var initializer Stmt
+	if p.match(Semicolon) {
+		initializer = nil
+	} else if p.match(Var) {
+		initializer, err = p.varDeclaration()
+	} else {
+		initializer, err = p.expressionStatement()
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	var condition Expr
+	if !p.check(Semicolon) {
+		condition, err = p.expression()
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	_, err = p.consume(Semicolon, "Expect ';' after loop condition.")
+	if err != nil {
+		return nil, err
+	}
+
+	var increment Expr
+	if !p.check(RightParen) {
+		increment, err = p.expression()
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = p.consume(RightParen, "Expect ')' after loop condition.")
+	if err != nil {
+		return nil, err
+	}
+
+	body, err := p.statement()
+	if err != nil {
+		return nil, err
+	}
+
+	if increment != nil {
+		body = NewStmtBlock([]Stmt{
+			body,
+			NewStmtExpression(increment),
+		})
+	}
+
+	if condition == nil {
+		condition = NewExprLiteral(true)
+	}
+	body = NewStmtWhile(condition, body)
+
+	if initializer != nil {
+		body = NewStmtBlock([]Stmt{
+			initializer,
+			body,
+		})
+	}
+
+	return body, nil
 }
 
 func (p *Parser) blockStatement() (Stmt, error) {
@@ -447,6 +525,7 @@ func (p *Parser) primary() (Expr, error) {
 	return nil, NewError(p.peek(), "Expect expression.")
 }
 
+// If the current Token.type matches one of the given types returns `true` and advance the parser's cursor
 func (p *Parser) match(types ...TokenType) bool {
 	for _, currType := range types {
 		if p.check(currType) {
@@ -468,6 +547,7 @@ func (p *Parser) previous() *Token {
 	return p.tokens[p.current-1]
 }
 
+// Return `true` if the current token == [tokenType] but do not move the parser's cursor
 func (p *Parser) check(tokenType TokenType) bool {
 	if p.isAtEnd() {
 		return false
