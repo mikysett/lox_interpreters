@@ -64,16 +64,27 @@ func NewParser(tokens []*Token) *Parser {
 	}
 }
 
-func (p *Parser) parse() ([]Stmt, error) {
-	statements := []Stmt{}
+func (p *Parser) parse() (statements []Stmt, err error) {
+	// To ensure the parser returns all errors concatenated in order
+	errors := []error{}
+
 	for !p.isAtEnd() {
-		stmt, err := p.declaration()
-		if err != nil {
-			return nil, err
+		stmt, declarationErr := p.declaration()
+		if declarationErr != nil {
+			errors = append(errors, declarationErr)
 		}
 		statements = append(statements, stmt)
 	}
-	return statements, nil
+
+	if len(errors) == 0 {
+		return statements, nil
+	}
+
+	err = errors[0]
+	for i := 1; i < len(errors); i++ {
+		err = fmt.Errorf("%w\n%w", err, errors[i])
+	}
+	return nil, err
 }
 
 func (p *Parser) declaration() (stmt Stmt, err error) {
@@ -280,7 +291,7 @@ func (p *Parser) expressionStatement() (Stmt, error) {
 	if err != nil {
 		return nil, err
 	}
-	_, err = p.consume(Semicolon, "Expect ';' after value.")
+	_, err = p.consume(Semicolon, "Expect ';' after expression.")
 	if err == nil {
 		return NewStmtExpression(value), nil
 	} else if isReplMode && p.isAtEnd() {
