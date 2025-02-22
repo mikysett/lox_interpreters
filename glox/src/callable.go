@@ -1,6 +1,13 @@
 package main
 
-type Callable interface {
-	arity() int
-	call(interpreter *Interpreter, arguments []any) (any, error)
+type Callable struct {
+	arity func() int
+	call  func(interpreter *Interpreter, arguments []any) (any, error)
+}
+
+func NewCallable(arity func() int, call func(interpreter *Interpreter, arguments []any) (any, error)) *Callable {
+	return &Callable{
+		arity: arity,
+		call:  call,
+	}
 }
