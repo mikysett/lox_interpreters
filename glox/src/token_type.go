@@ -61,7 +61,7 @@ const (
 	ShortCircuit // No char equivalent, special token to stop normal execution flow
 )
 
-func (t *TokenType) toString() string {
+func (t *TokenType) String() string {
 	switch *t {
 	case LeftParen:
 		return "LeftParen"
