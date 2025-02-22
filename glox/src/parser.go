@@ -12,7 +12,7 @@ import (
 // funDecl        → "fun" function ;
 // function       → IDENTIFIER "(" parameters? ")" block ;
 // parameters     → IDENTIFIER ( "," IDENTIFIER )* ;
-// varDecl        → "var" IDENTIFIER ( "=" commaSeparator )? ";" ;
+// varDecl        → "var" IDENTIFIER ( "=" commaOperator )? ";" ;
 // statement      → exprStmt
 //                | ifStmt
 //                | printStmt
@@ -21,16 +21,16 @@ import (
 //                | block
 //                | "break" ; // This is not context free as it is only valid in `while` and `for` loops
 
-// while          → while "(" commaSeparator ")" statement ;
+// while          → while "(" commaOperator ")" statement ;
 // for            → for "(" ( varDecl | exprStmt ";" )
-//                  commaSeparator? ";"
-//                  commaSeparator? ")" statement ;
-// if             → if "(" commaSeparator ")" statement ;
+//                  commaOperator? ";"
+//                  commaOperator? ")" statement ;
+// if             → if "(" commaOperator ")" statement ;
 //                ( "else" statement )+ ;
 // block          → "{" declaration* "}" ;
-// exprStmt       → commaSeparator ";" ;
-// printStmt      → "print" commaSeparator ";" ;
-// commaSeparator → expression ( ( "," ) expression )* ;
+// exprStmt       → commaOperator ";" ;
+// printStmt      → "print" commaOperator ";" ;
+// commaOperator → expression ( ( "," ) expression )* ;
 // expression     → assignment ;
 // assignment     → IDENTIFIER "=" assignment
 //                | ternary ;
@@ -188,7 +188,7 @@ func (p *Parser) varDeclaration() (stmt Stmt, err error) {
 	}
 	var initializer Expr
 	if p.match(Equal) {
-		initializer, err = p.commaSeparator()
+		initializer, err = p.commaOperator()
 		if err != nil {
 			return nil, err
 		}
@@ -228,7 +228,7 @@ func (p *Parser) ifStatement() (Stmt, error) {
 	if err != nil {
 		return nil, err
 	}
-	condition, err := p.commaSeparator()
+	condition, err := p.commaOperator()
 	if err != nil {
 		return nil, err
 	}
@@ -255,7 +255,7 @@ func (p *Parser) whileStatement() (Stmt, error) {
 	if err != nil {
 		return nil, err
 	}
-	condition, err := p.commaSeparator()
+	condition, err := p.commaOperator()
 	if err != nil {
 		return nil, err
 	}
@@ -296,7 +296,7 @@ func (p *Parser) forStatement() (Stmt, error) {
 
 	var condition Expr
 	if !p.check(Semicolon) {
-		condition, err = p.commaSeparator()
+		condition, err = p.commaOperator()
 		if err != nil {
 			return nil, err
 		}
@@ -309,7 +309,7 @@ func (p *Parser) forStatement() (Stmt, error) {
 
 	var increment Expr
 	if !p.check(RightParen) {
-		increment, err = p.commaSeparator()
+		increment, err = p.commaOperator()
 	}
 	if err != nil {
 		return nil, err
@@ -375,7 +375,7 @@ func (p *Parser) breakStatement() (Stmt, error) {
 }
 
 func (p *Parser) printStatement() (Stmt, error) {
-	value, err := p.commaSeparator()
+	value, err := p.commaOperator()
 	if err != nil {
 		return nil, err
 	}
@@ -387,7 +387,7 @@ func (p *Parser) printStatement() (Stmt, error) {
 }
 
 func (p *Parser) expressionStatement() (Stmt, error) {
-	value, err := p.commaSeparator()
+	value, err := p.commaOperator()
 	if err != nil {
 		return nil, err
 	}
@@ -401,7 +401,7 @@ func (p *Parser) expressionStatement() (Stmt, error) {
 	return nil, err
 }
 
-func (p *Parser) commaSeparator() (expr Expr, firstErr error) {
+func (p *Parser) commaOperator() (expr Expr, firstErr error) {
 	expr, err := p.expression()
 	if err != nil {
 		firstErr = err
