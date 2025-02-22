@@ -25,6 +25,16 @@ func (ast *AstPrinter) visitBinaryExpr(expr *ExprBinary) (any, error) {
 	return ast.parenthesize(expr.operator.Lexeme, expr.left, expr.right)
 }
 
+func (ast *AstPrinter) visitCallExpr(expr *ExprCall) (any, error) {
+	astResult, _ := expr.accept(ast)
+	fnName, ok := astResult.(string)
+	if !ok {
+		panic("Unreachable non string return in AstPrinter!")
+	}
+
+	return ast.parenthesize(fnName, expr.arguments...)
+}
+
 func (ast *AstPrinter) visitTernaryExpr(expr *ExprTernary) (any, error) {
 	return ast.parenthesize("?:", expr.condition, expr.left, expr.right)
 }
