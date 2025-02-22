@@ -1,6 +1,9 @@
 package main
 
-import "fmt"
+import (
+	"fmt"
+	"time"
+)
 
 type RuntimeError struct {
 	token   *Token
@@ -23,8 +26,14 @@ type Interpreter struct {
 }
 
 func NewInterpreter() *Interpreter {
+	globals := NewEnvironment()
+	globals.define("clock", NewCallable(
+		func() int { return 0 },
+		func(interpreter *Interpreter, arguments []any) (any, error) {
+			return float64(time.Now().Unix()), nil
+		}))
 	return &Interpreter{
-		enviroment: NewEnvironment(),
+		enviroment: NewEnvironment().withEnclosing(globals),
 	}
 }
 
@@ -236,7 +245,7 @@ func (interpreter *Interpreter) visitCallExpr(expr *ExprCall) (any, error) {
 		arguments = append(arguments, argument)
 	}
 
-	function, ok := callee.(Callable)
+	function, ok := callee.(*Callable)
 	if !ok {
 		return nil, NewRuntimeError(expr.paren, "Can only call functions and classes.")
 	}
