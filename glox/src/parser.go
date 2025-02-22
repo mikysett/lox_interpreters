@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"os"
 )
 
 // program        → declaration* EOF ;
@@ -35,7 +36,9 @@ import (
 // comparison     → term ( ( ">" | ">=" | "<" | "<=" ) term )* ;
 // term           → factor ( ( "-" | "+" ) factor )* ;
 // factor         → unary ( ( "/" | "*" ) unary )* ;
-// unary          → ( "!" | "-" ) unary | primary ;
+// unary          → ( "!" | "-" ) unary | call ;
+// call           → primary ( "(" arguments? ")" )* ;
+// arguments      → expression ( "," expression )* ;
 // primary        → "true" | "false" | "nil"
 //                | NUMBER | STRING
 //                | "(" expression ")"
@@ -57,6 +60,8 @@ type Parser struct {
 	tokens           []*Token
 	current          int
 	acceptBreakCount int
+	// To prevent interpreter execution on errors not triggering parser panic mode
+	hadError bool
 }
 
 func NewParser(tokens []*Token) *Parser {
@@ -298,7 +303,7 @@ func (p *Parser) breakStatement() (Stmt, error) {
 	}
 
 	if p.acceptBreakCount <= 0 {
-		return nil, NewError(breakToken, "Only valid in 'while' and 'for' loops.")
+		return nil, NewParserError(breakToken, "Only valid in 'while' and 'for' loops.")
 	}
 	return NewStmtBreak(breakToken), nil
 }
@@ -372,7 +377,7 @@ func (p *Parser) assignment() (Expr, error) {
 		}
 
 		if _, ok := expr.(*ExprVariable); !ok {
-			return nil, NewError(equals, "Invalid assignment target.")
+			return nil, NewParserError(equals, "Invalid assignment target.")
 		}
 		return NewExprAssign(expr.(*ExprVariable).name, value), nil
 	}
@@ -398,7 +403,7 @@ func (p *Parser) ternary() (Expr, error) {
 				return nil, err
 			}
 		} else {
-			return nil, NewError(p.peek(), "Expect :.")
+			return nil, NewParserError(p.peek(), "Expect :.")
 		}
 		expr = NewExprTernary(operator, expr, left, right)
 	}
@@ -537,7 +542,57 @@ func (p *Parser) unary() (Expr, error) {
 		}
 		return NewExprUnary(operator, right), nil
 	}
-	return p.primary()
+	return p.call()
+}
+
+func (p *Parser) call() (Expr, error) {
+	expr, err := p.primary()
+	if err != nil {
+		return nil, err
+	}
+
+	for {
+		if p.match(LeftParen) {
+			expr, err = p.finishCall(expr)
+			if err != nil {
+				return nil, err
+			}
+		} else {
+			break
+		}
+	}
+
+	return expr, nil
+}
+
+func (p *Parser) finishCall(expr Expr) (Expr, error) {
+	arguments := []Expr{}
+	if !p.check(RightParen) {
+		for {
+			if len(arguments) >= 255 {
+				// Error here is just shown but doesn't stop parser execution as the parser is not in panic mode
+				p.hadError = true
+				fmt.Fprintln(os.Stderr, NewParserError(p.peek(), "Can't have more than 255 arguments."))
+			}
+
+			arg, err := p.expression()
+			if err != nil {
+				return nil, err
+			}
+			arguments = append(arguments, arg)
+
+			if !p.check(Comma) {
+				break
+			}
+		}
+	}
+
+	paren, err := p.consume(RightParen, "Expect ')' after arguments.")
+	if err != nil {
+		return nil, err
+	}
+
+	return NewExprCall(expr, paren, arguments), nil
 }
 
 func (p *Parser) primary() (Expr, error) {
@@ -562,7 +617,7 @@ func (p *Parser) primary() (Expr, error) {
 	} else if p.match(Identifier) {
 		return NewExprVariable(p.previous()), nil
 	}
-	return nil, NewError(p.peek(), "Expect expression.")
+	return nil, NewParserError(p.peek(), "Expect expression.")
 }
 
 // If the current Token.type matches one of the given types returns `true` and advance the parser's cursor
@@ -607,7 +662,7 @@ func (p *Parser) consume(tokenType TokenType, message string) (*Token, error) {
 	if p.check(tokenType) {
 		return p.advance(), nil
 	}
-	return nil, NewError(p.peek(), message)
+	return nil, NewParserError(p.peek(), message)
 }
 
 func (p *Parser) synchronize() {
@@ -625,7 +680,7 @@ func (p *Parser) synchronize() {
 	}
 }
 
-func NewError(token *Token, message string) *ParseError {
+func NewParserError(token *Token, message string) *ParseError {
 	return &ParseError{
 		token:   token,
 		message: message,

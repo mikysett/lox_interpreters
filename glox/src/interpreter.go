@@ -221,6 +221,38 @@ func (interpreter *Interpreter) visitBinaryExpr(expr *ExprBinary) (any, error) {
 	}
 }
 
+func (interpreter *Interpreter) visitCallExpr(expr *ExprCall) (any, error) {
+	callee, err := interpreter.evaluate(expr.callee)
+	if err != nil {
+		return nil, err
+	}
+
+	arguments := []any{}
+	for _, argumentExpr := range expr.arguments {
+		argument, err := interpreter.evaluate(argumentExpr)
+		if err != nil {
+			return nil, err
+		}
+		arguments = append(arguments, argument)
+	}
+
+	function, ok := callee.(Callable)
+	if !ok {
+		return nil, NewRuntimeError(expr.paren, "Can only call functions and classes.")
+	}
+
+	if function.arity() != len(arguments) {
+		return nil, NewRuntimeError(expr.paren, fmt.Sprintf("Expected %d arguments but got %d.", function.arity(), len(arguments)))
+	}
+
+	result, err := function.call(interpreter, arguments)
+	if err != nil {
+		return nil, err
+	}
+
+	return result, nil
+}
+
 func (interpreter *Interpreter) visitTernaryExpr(expr *ExprTernary) (any, error) {
 	condition, err := interpreter.evaluate(expr.condition)
 	if err != nil {
