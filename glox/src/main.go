@@ -100,6 +100,11 @@ func run(source string, interpreter *Interpreter) (err error) {
 		return err
 	}
 
+	// For errors not propagated to the `parse()` return
+	if parser.hadError {
+		return NewParserError(parser.peek(), "Don't run interpreter due to previous errors.")
+	}
+
 	err = interpreter.interpret(stmts)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)
