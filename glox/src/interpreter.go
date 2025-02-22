@@ -69,9 +69,10 @@ func (interpreter *Interpreter) visitBreakStmt(stmt *StmtBreak) error {
 }
 
 func (interpreter *Interpreter) executeBlock(stmts []Stmt, env *Environment) error {
+	enclosingEnv := interpreter.enviroment
 	interpreter.enviroment = env
 	defer func() {
-		interpreter.enviroment = interpreter.enviroment.enclosing
+		interpreter.enviroment = enclosingEnv
 	}()
 
 	for _, stmt := range stmts {
