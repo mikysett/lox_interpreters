@@ -54,8 +54,11 @@ const (
 	True   // Char: 'true'
 	Var    // Char: 'var'
 	While  // Char: 'while'
+	Break  // Char: 'break'
 
 	EOF
+
+	ShortCircuit // No char equivalent, special token to stop normal execution flow
 )
 
 func (t *TokenType) toString() string {

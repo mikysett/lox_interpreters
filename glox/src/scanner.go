@@ -31,6 +31,7 @@ var keywords = map[string]TokenType{
 	"true":   True,
 	"var":    Var,
 	"while":  While,
+	"break":  Break,
 	"?":      QuestionMark,
 	":":      Colon,
 }

@@ -11,6 +11,7 @@ type StmtVisitor interface {
 	visitVarStmt(*StmtVar) error
 	visitBlockStmt(*StmtBlock) error
 	visitWhileStmt(*StmtWhile) error
+	visitBreakStmt(*StmtBreak) error
 }
 
 // Block      : List<Stmt> statements
@@ -109,4 +110,20 @@ func NewStmtWhile(condition Expr, body Stmt) *StmtWhile {
 
 func (stmt *StmtWhile) accept(v StmtVisitor) error {
 	return v.visitWhileStmt(stmt)
+}
+
+// Break      : Token token
+type StmtBreak struct {
+	shortCircuit *Token
+}
+
+func NewStmtBreak(token *Token) *StmtBreak {
+	shortCircuit := NewToken(ShortCircuit, token.Lexeme, token.Literal, token.Line)
+	return &StmtBreak{
+		shortCircuit: &shortCircuit,
+	}
+}
+
+func (stmt *StmtBreak) accept(v StmtVisitor) error {
+	return v.visitBreakStmt(stmt)
 }

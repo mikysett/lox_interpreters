@@ -12,7 +12,8 @@ import (
 //                | printStmt
 //                | whileStmt
 //                | forStmt
-//                | block ;
+//                | block
+//                | "break" ; // This is not context free as it is only valid in `while` and `for` loops
 
 // while          → while "(" expression ")" statement ;
 // for            → for "(" ( varDecl | exprStmt ";" )
@@ -53,8 +54,9 @@ func (e *ParseError) Error() string {
 }
 
 type Parser struct {
-	tokens  []*Token
-	current int
+	tokens           []*Token
+	current          int
+	acceptBreakCount int
 }
 
 func NewParser(tokens []*Token) *Parser {
@@ -137,6 +139,9 @@ func (p *Parser) statement() (Stmt, error) {
 	if p.match(LeftBrace) {
 		return p.blockStatement()
 	}
+	if p.match(Break) {
+		return p.breakStatement()
+	}
 	return p.expressionStatement()
 }
 
@@ -180,6 +185,12 @@ func (p *Parser) whileStatement() (Stmt, error) {
 	if err != nil {
 		return nil, err
 	}
+
+	p.acceptBreakCount += 1
+	defer func() {
+		p.acceptBreakCount -= 1
+	}()
+
 	body, err := p.statement()
 	if err != nil {
 		return nil, err
@@ -231,6 +242,11 @@ func (p *Parser) forStatement() (Stmt, error) {
 		return nil, err
 	}
 
+	p.acceptBreakCount += 1
+	defer func() {
+		p.acceptBreakCount -= 1
+	}()
+
 	body, err := p.statement()
 	if err != nil {
 		return nil, err
@@ -272,6 +288,19 @@ func (p *Parser) blockStatement() (Stmt, error) {
 		return nil, err
 	}
 	return NewStmtBlock(statements), nil
+}
+
+func (p *Parser) breakStatement() (Stmt, error) {
+	breakToken := p.previous()
+	_, err := p.consume(Semicolon, "Expect ';' after break.")
+	if err != nil {
+		return nil, err
+	}
+
+	if p.acceptBreakCount <= 0 {
+		return nil, NewError(breakToken, "Only valid in 'while' and 'for' loops.")
+	}
+	return NewStmtBreak(breakToken), nil
 }
 
 func (p *Parser) printStatement() (Stmt, error) {
