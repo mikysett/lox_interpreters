@@ -6,8 +6,13 @@ import (
 )
 
 // program        → declaration* EOF ;
-// declaration    → varDecl | statement ;
-// varDecl        → "var" IDENTIFIER ( "=" expression )? ";" ;
+// declaration    → funDecl
+//                | varDecl
+//                | statement ;
+// funDecl        → "fun" function ;
+// function       → IDENTIFIER "(" parameters? ")" block ;
+// parameters     → IDENTIFIER ( "," IDENTIFIER )* ;
+// varDecl        → "var" IDENTIFIER ( "=" commaSeparator )? ";" ;
 // statement      → exprStmt
 //                | ifStmt
 //                | printStmt
@@ -16,17 +21,17 @@ import (
 //                | block
 //                | "break" ; // This is not context free as it is only valid in `while` and `for` loops
 
-// while          → while "(" expression ")" statement ;
+// while          → while "(" commaSeparator ")" statement ;
 // for            → for "(" ( varDecl | exprStmt ";" )
-//                  expression? ";"
-//                  expression? ")" statement ;
-// if             → if "(" expression ")" statement ;
+//                  commaSeparator? ";"
+//                  commaSeparator? ")" statement ;
+// if             → if "(" commaSeparator ")" statement ;
 //                ( "else" statement )+ ;
 // block          → "{" declaration* "}" ;
-// exprStmt       → expression ";" ;
-// printStmt      → "print" expression ";" ;
-// expression     → commaSeparator ;
-// commaSeparator → assignment ( ( "," ) assignment )* ;
+// exprStmt       → commaSeparator ";" ;
+// printStmt      → "print" commaSeparator ";" ;
+// commaSeparator → expression ( ( "," ) expression )* ;
+// expression     → assignment ;
 // assignment     → IDENTIFIER "=" assignment
 //                | ternary ;
 // ternary        → ( logic_or "?" logic_or ":" )* logic_or ;
@@ -104,8 +109,76 @@ func (p *Parser) declaration() (stmt Stmt, err error) {
 	}()
 	if p.match(Var) {
 		return p.varDeclaration()
+	} else if p.match(Fun) {
+		return p.function("function")
 	}
+
 	return p.statement()
+}
+
+func (p *Parser) function(kind string) (stmt Stmt, err error) {
+	name, err := p.consume(Identifier, "Expect "+kind+" name.")
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = p.consume(LeftParen, "Expect '(' after "+kind+" name.")
+	if err != nil {
+		return nil, err
+	}
+
+	parameters := []*Token{}
+	for !p.check(RightParen) {
+		if len(parameters) != 0 {
+			_, err = p.consume(Comma, "Expect ',' between parameters.")
+			if err != nil {
+				return nil, err
+			}
+		}
+		if len(parameters) >= 255 {
+			// Error here is just shown but doesn't stop parser execution as the parser is not in panic mode
+			p.hadError = true
+			fmt.Fprintln(os.Stderr, NewParserError(p.peek(), "Can't have more than 255 arguments."))
+		}
+
+		param, err := p.consume(Identifier, "Expect parameter name.")
+		if err != nil {
+			return nil, err
+		}
+		parameters = append(parameters, param)
+	}
+	_, err = p.consume(RightParen, "Expect ')' after parameters.")
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = p.consume(LeftBrace, "Expect '{' before "+kind+" body.")
+	if err != nil {
+		return nil, err
+	}
+
+	body, err := p.block()
+	if err != nil {
+		return nil, err
+	}
+
+	return NewStmtFunction(name, parameters, body), nil
+}
+
+func (p *Parser) block() (stmts []Stmt, err error) {
+	for !p.check(RightBrace) && !p.isAtEnd() {
+		stmt, err := p.declaration()
+		if err != nil {
+			return nil, err
+		}
+		stmts = append(stmts, stmt)
+	}
+	_, err = p.consume(RightBrace, "Expect '}' after block.")
+	if err != nil {
+		return nil, err
+	}
+
+	return stmts, nil
 }
 
 func (p *Parser) varDeclaration() (stmt Stmt, err error) {
@@ -115,7 +188,7 @@ func (p *Parser) varDeclaration() (stmt Stmt, err error) {
 	}
 	var initializer Expr
 	if p.match(Equal) {
-		initializer, err = p.expression()
+		initializer, err = p.commaSeparator()
 		if err != nil {
 			return nil, err
 		}
@@ -155,7 +228,7 @@ func (p *Parser) ifStatement() (Stmt, error) {
 	if err != nil {
 		return nil, err
 	}
-	condition, err := p.expression()
+	condition, err := p.commaSeparator()
 	if err != nil {
 		return nil, err
 	}
@@ -182,7 +255,7 @@ func (p *Parser) whileStatement() (Stmt, error) {
 	if err != nil {
 		return nil, err
 	}
-	condition, err := p.expression()
+	condition, err := p.commaSeparator()
 	if err != nil {
 		return nil, err
 	}
@@ -223,7 +296,7 @@ func (p *Parser) forStatement() (Stmt, error) {
 
 	var condition Expr
 	if !p.check(Semicolon) {
-		condition, err = p.expression()
+		condition, err = p.commaSeparator()
 		if err != nil {
 			return nil, err
 		}
@@ -236,7 +309,7 @@ func (p *Parser) forStatement() (Stmt, error) {
 
 	var increment Expr
 	if !p.check(RightParen) {
-		increment, err = p.expression()
+		increment, err = p.commaSeparator()
 	}
 	if err != nil {
 		return nil, err
@@ -280,18 +353,11 @@ func (p *Parser) forStatement() (Stmt, error) {
 }
 
 func (p *Parser) blockStatement() (Stmt, error) {
-	statements := []Stmt{}
-	for !p.check(RightBrace) && !p.isAtEnd() {
-		stmt, err := p.declaration()
-		if err != nil {
-			return nil, err
-		}
-		statements = append(statements, stmt)
-	}
-	_, err := p.consume(RightBrace, "Expect '}' after block.")
+	statements, err := p.block()
 	if err != nil {
 		return nil, err
 	}
+
 	return NewStmtBlock(statements), nil
 }
 
@@ -309,7 +375,7 @@ func (p *Parser) breakStatement() (Stmt, error) {
 }
 
 func (p *Parser) printStatement() (Stmt, error) {
-	value, err := p.expression()
+	value, err := p.commaSeparator()
 	if err != nil {
 		return nil, err
 	}
@@ -321,7 +387,7 @@ func (p *Parser) printStatement() (Stmt, error) {
 }
 
 func (p *Parser) expressionStatement() (Stmt, error) {
-	value, err := p.expression()
+	value, err := p.commaSeparator()
 	if err != nil {
 		return nil, err
 	}
@@ -335,19 +401,15 @@ func (p *Parser) expressionStatement() (Stmt, error) {
 	return nil, err
 }
 
-func (p *Parser) expression() (Expr, error) {
-	return p.commaSeparator()
-}
-
 func (p *Parser) commaSeparator() (expr Expr, firstErr error) {
-	expr, err := p.assignment()
+	expr, err := p.expression()
 	if err != nil {
 		firstErr = err
 	}
 
 	for p.match(Comma) {
 		operator := p.previous()
-		right, err := p.assignment()
+		right, err := p.expression()
 		if err != nil {
 			if firstErr == nil {
 				firstErr = err
@@ -361,6 +423,10 @@ func (p *Parser) commaSeparator() (expr Expr, firstErr error) {
 	}
 
 	return expr, nil
+}
+
+func (p *Parser) expression() (Expr, error) {
+	return p.assignment()
 }
 
 func (p *Parser) assignment() (Expr, error) {
@@ -581,7 +647,7 @@ func (p *Parser) finishCall(expr Expr) (Expr, error) {
 			}
 			arguments = append(arguments, arg)
 
-			if !p.check(Comma) {
+			if !p.match(Comma) {
 				break
 			}
 		}

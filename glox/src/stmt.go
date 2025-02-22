@@ -6,6 +6,7 @@ type Stmt interface {
 
 type StmtVisitor interface {
 	visitExpressionStmt(*StmtExpression) error
+	visitFunctionStmt(*StmtFunction) error
 	visitIfStmt(*StmtIf) error
 	visitPrintStmt(*StmtPrint) error
 	visitVarStmt(*StmtVar) error
@@ -27,6 +28,25 @@ func NewStmtBlock(block []Stmt) *StmtBlock {
 
 func (stmt *StmtBlock) accept(v StmtVisitor) error {
 	return v.visitBlockStmt(stmt)
+}
+
+// Function   : Token name, List<Token> params, List<Stmt> body
+type StmtFunction struct {
+	name   *Token
+	params []*Token
+	body   []Stmt
+}
+
+func NewStmtFunction(name *Token, params []*Token, body []Stmt) *StmtFunction {
+	return &StmtFunction{
+		name:   name,
+		params: params,
+		body:   body,
+	}
+}
+
+func (stmt *StmtFunction) accept(v StmtVisitor) error {
+	return v.visitFunctionStmt(stmt)
 }
 
 // If         : Expr condition, Stmt thenBranch, Stmt elseBranch,

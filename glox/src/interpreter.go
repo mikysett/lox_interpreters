@@ -23,16 +23,21 @@ func NewRuntimeError(token *Token, message string) *RuntimeError {
 
 type Interpreter struct {
 	enviroment *Environment
+	globals    *Environment
 }
 
 func NewInterpreter() *Interpreter {
 	globals := NewEnvironment()
-	globals.define("clock", NewCallable(
+	globals.define("clock", NewProtoCallable(
 		func() int { return 0 },
 		func(interpreter *Interpreter, arguments []any) (any, error) {
 			return float64(time.Now().Unix()), nil
-		}))
+		},
+		func() string { return "<native fn>" },
+	))
+
 	return &Interpreter{
+		globals:    globals,
 		enviroment: NewEnvironment().withEnclosing(globals),
 	}
 }
@@ -109,6 +114,12 @@ func (interpreter *Interpreter) visitExpressionStmt(stmt *StmtExpression) error 
 	return err
 }
 
+func (interpreter *Interpreter) visitFunctionStmt(stmt *StmtFunction) error {
+	function := NewFunction(stmt)
+	interpreter.enviroment.define(stmt.name.Lexeme, function)
+	return nil
+}
+
 func (interpreter *Interpreter) visitIfStmt(stmt *StmtIf) (err error) {
 	eval, err := interpreter.evaluate(stmt.condition)
 	if err != nil {
@@ -132,7 +143,7 @@ func (interpreter *Interpreter) visitWhileStmt(stmt *StmtWhile) (err error) {
 
 		err = interpreter.execute(stmt.body)
 		if err != nil {
-			// It the execution is interrupted by a break we exit the loop without throwing an error
+			// If the execution is interrupted by a break we exit the loop without throwing an error
 			if err.(*RuntimeError).token.Type == ShortCircuit {
 				return nil
 			}
@@ -245,7 +256,7 @@ func (interpreter *Interpreter) visitCallExpr(expr *ExprCall) (any, error) {
 		arguments = append(arguments, argument)
 	}
 
-	function, ok := callee.(*Callable)
+	function, ok := callee.(Callable)
 	if !ok {
 		return nil, NewRuntimeError(expr.paren, "Can only call functions and classes.")
 	}
