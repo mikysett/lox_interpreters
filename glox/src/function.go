@@ -4,11 +4,13 @@ import "fmt"
 
 type Function struct {
 	declaration *StmtFunction
+	closure     *Environment
 }
 
-func NewFunction(declaration *StmtFunction) *Function {
+func NewFunction(declaration *StmtFunction, closure *Environment) *Function {
 	return &Function{
 		declaration: declaration,
+		closure:     closure,
 	}
 }
 
@@ -17,7 +19,7 @@ func (f *Function) arity() int {
 }
 
 func (f *Function) call(interpreter *Interpreter, arguments []any) (any, error) {
-	env := NewEnvironment().withEnclosing(interpreter.globals)
+	env := NewEnvironment().withEnclosing(f.closure)
 
 	for i, param := range f.declaration.params {
 		env.define(param.Lexeme, arguments[i])

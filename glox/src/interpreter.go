@@ -116,7 +116,7 @@ func (interpreter *Interpreter) visitExpressionStmt(stmt *StmtExpression) error 
 }
 
 func (interpreter *Interpreter) visitFunctionStmt(stmt *StmtFunction) error {
-	function := NewFunction(stmt)
+	function := NewFunction(stmt, interpreter.enviroment)
 	interpreter.enviroment.define(stmt.name.Lexeme, function)
 	return nil
 }
