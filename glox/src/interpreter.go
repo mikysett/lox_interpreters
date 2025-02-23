@@ -38,7 +38,7 @@ func NewInterpreter() *Interpreter {
 
 	return &Interpreter{
 		globals:    globals,
-		enviroment: NewEnvironment().withEnclosing(globals),
+		enviroment: globals,
 	}
 }
 
