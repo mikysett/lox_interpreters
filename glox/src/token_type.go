@@ -57,8 +57,6 @@ const (
 	Break  // Char: 'break'
 
 	EOF
-
-	ShortCircuit // No char equivalent, special token to stop normal execution flow
 )
 
 func (t *TokenType) String() string {

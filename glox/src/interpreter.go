@@ -65,7 +65,7 @@ func (interpreter *Interpreter) visitBlockStmt(stmt *StmtBlock) error {
 }
 
 func (interpreter *Interpreter) visitBreakStmt(stmt *StmtBreak) error {
-	return NewRuntimeError(stmt.shortCircuit, "Short circuit to exit while and for loops.")
+	return NewBreakShortCircuit()
 }
 
 func (interpreter *Interpreter) executeBlock(stmts []Stmt, env *Environment) error {
@@ -144,8 +144,7 @@ func (interpreter *Interpreter) visitWhileStmt(stmt *StmtWhile) (err error) {
 
 		err = interpreter.execute(stmt.body)
 		if err != nil {
-			// If the execution is interrupted by a break we exit the loop without throwing an error
-			if err.(*RuntimeError).token.Type == ShortCircuit {
+			if _, ok := err.(*BreakShortCircuit); ok {
 				return nil
 			}
 			return err

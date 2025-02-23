@@ -150,16 +150,11 @@ func (stmt *StmtWhile) accept(v StmtVisitor) error {
 	return v.visitWhileStmt(stmt)
 }
 
-// Break      : Token token
-type StmtBreak struct {
-	shortCircuit *Token
-}
+// Break      :
+type StmtBreak struct{}
 
-func NewStmtBreak(token *Token) *StmtBreak {
-	shortCircuit := NewToken(ShortCircuit, token.Lexeme, token.Literal, token.Line)
-	return &StmtBreak{
-		shortCircuit: &shortCircuit,
-	}
+func NewStmtBreak() *StmtBreak {
+	return &StmtBreak{}
 }
 
 func (stmt *StmtBreak) accept(v StmtVisitor) error {

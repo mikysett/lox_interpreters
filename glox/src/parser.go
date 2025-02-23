@@ -376,7 +376,7 @@ func (p *Parser) breakStatement() (Stmt, error) {
 	if p.acceptBreakCount <= 0 {
 		return nil, NewParserError(breakToken, "Only valid in 'while' and 'for' loops.")
 	}
-	return NewStmtBreak(breakToken), nil
+	return NewStmtBreak(), nil
 }
 
 func (p *Parser) printStatement() (Stmt, error) {
