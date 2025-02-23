@@ -16,11 +16,13 @@ import (
 // statement      → exprStmt
 //                | ifStmt
 //                | printStmt
+//                | returnStmt
 //                | whileStmt
 //                | forStmt
 //                | block
 //                | "break" ; // This is not context free as it is only valid in `while` and `for` loops
 
+// returnStmt     → "return" expression? ";" ;
 // while          → while "(" commaOperator ")" statement ;
 // for            → for "(" ( varDecl | exprStmt ";" )
 //                  commaOperator? ";"
@@ -214,6 +216,9 @@ func (p *Parser) statement() (Stmt, error) {
 	if p.match(Print) {
 		return p.printStatement()
 	}
+	if p.match(Return) {
+		return p.returnStatement()
+	}
 	if p.match(LeftBrace) {
 		return p.blockStatement()
 	}
@@ -384,6 +389,24 @@ func (p *Parser) printStatement() (Stmt, error) {
 		return nil, err
 	}
 	return NewStmtPrint(value), nil
+}
+
+func (p *Parser) returnStatement() (stmt Stmt, err error) {
+	keyword := p.previous()
+
+	var value Expr
+	if !p.check(Semicolon) {
+		value, err = p.commaOperator()
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	_, err = p.consume(Semicolon, "Expect ';' after value.")
+	if err != nil {
+		return nil, err
+	}
+	return NewStmtReturn(keyword, value), nil
 }
 
 func (p *Parser) expressionStatement() (Stmt, error) {

@@ -164,6 +164,17 @@ func (interpreter *Interpreter) visitPrintStmt(stmt *StmtPrint) error {
 	return nil
 }
 
+func (interpreter *Interpreter) visitReturnStmt(stmt *StmtReturn) (err error) {
+	var value any
+	if stmt.expression != nil {
+		value, err = interpreter.evaluate(stmt.expression)
+		if err != nil {
+			return err
+		}
+	}
+	return NewReturnShortCircuit(value)
+}
+
 func (interpreter *Interpreter) visitBinaryExpr(expr *ExprBinary) (any, error) {
 	left, err := interpreter.evaluate(expr.left)
 	if err != nil {

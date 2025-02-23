@@ -9,6 +9,7 @@ type StmtVisitor interface {
 	visitFunctionStmt(*StmtFunction) error
 	visitIfStmt(*StmtIf) error
 	visitPrintStmt(*StmtPrint) error
+	visitReturnStmt(*StmtReturn) error
 	visitVarStmt(*StmtVar) error
 	visitBlockStmt(*StmtBlock) error
 	visitWhileStmt(*StmtWhile) error
@@ -96,6 +97,23 @@ func NewStmtPrint(expression Expr) *StmtPrint {
 
 func (expr *StmtPrint) accept(v StmtVisitor) error {
 	return v.visitPrintStmt(expr)
+}
+
+// Return     : Token keyword, Expr value
+type StmtReturn struct {
+	keyword    *Token
+	expression Expr
+}
+
+func NewStmtReturn(keyword *Token, expression Expr) *StmtReturn {
+	return &StmtReturn{
+		keyword:    keyword,
+		expression: expression,
+	}
+}
+
+func (expr *StmtReturn) accept(v StmtVisitor) error {
+	return v.visitReturnStmt(expr)
 }
 
 // Var        : Token name, Expr initializer

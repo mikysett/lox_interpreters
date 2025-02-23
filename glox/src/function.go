@@ -24,6 +24,9 @@ func (f *Function) call(interpreter *Interpreter, arguments []any) (any, error) 
 	}
 
 	err := interpreter.executeBlock(f.declaration.body, env)
+	if res, ok := err.(*ReturnShortCircuit); ok {
+		return res.value, nil
+	}
 	if err != nil {
 		return nil, err
 	}
