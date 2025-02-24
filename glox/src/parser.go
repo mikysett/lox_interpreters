@@ -154,7 +154,7 @@ func (p *Parser) functionBody(kind string) (functionExpr *ExprFunction, err erro
 		if len(parameters) >= 255 {
 			// Error here is just shown but doesn't stop parser execution as the parser is not in panic mode
 			p.hadError = true
-			fmt.Fprintln(os.Stderr, NewParserError(p.peek(), "Can't have more than 255 arguments."))
+			fmt.Fprintln(os.Stderr, NewParserError(p.peek(), "Can't have more than 255 parameters."))
 		}
 
 		param, err := p.consume(Identifier, "Expect parameter name.")
