@@ -6,6 +6,7 @@ import (
 )
 
 func report(line int, where, message string) {
+	hadError = true
 	fmt.Fprintf(os.Stderr, "[line %v] Error%v: %v\n", line, where, message)
 }
 

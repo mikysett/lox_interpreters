@@ -17,6 +17,9 @@ const (
 	exRuntimeErr = 70
 )
 
+// To prevent interpreter execution on errors not triggering parser panic mode
+var hadError = false
+
 // When `true` expressions will be evaluated in the REPL instead of throwing an error
 // For example: `3 < 2` will print `false` in the REPL and throw an error in a file.
 var isReplMode = false
@@ -101,7 +104,7 @@ func run(source string, interpreter *Interpreter) (err error) {
 	}
 
 	// For errors not propagated to the `parse()` return
-	if parser.hadError {
+	if hadError {
 		return NewParserError(parser.peek(), "Don't run interpreter due to previous errors.")
 	}
 

@@ -2,7 +2,6 @@ package main
 
 import (
 	"fmt"
-	"os"
 )
 
 // program        → declaration* EOF ;
@@ -70,8 +69,6 @@ type Parser struct {
 	tokens           []*Token
 	current          int
 	acceptBreakCount int
-	// To prevent interpreter execution on errors not triggering parser panic mode
-	hadError bool
 }
 
 func NewParser(tokens []*Token) *Parser {
@@ -145,16 +142,9 @@ func (p *Parser) functionBody(kind string) (functionExpr *ExprFunction, err erro
 
 	parameters := []*Token{}
 	for !p.check(RightParen) {
-		if len(parameters) != 0 {
-			_, err = p.consume(Comma, "Expect ',' between parameters.")
-			if err != nil {
-				return nil, err
-			}
-		}
 		if len(parameters) >= 255 {
 			// Error here is just shown but doesn't stop parser execution as the parser is not in panic mode
-			p.hadError = true
-			fmt.Fprintln(os.Stderr, NewParserError(p.peek(), "Can't have more than 255 parameters."))
+			report(p.peek().Line, fmt.Sprintf(" at '%s'", p.peek().Lexeme), "Can't have more than 255 parameters.")
 		}
 
 		param, err := p.consume(Identifier, "Expect parameter name.")
@@ -162,6 +152,11 @@ func (p *Parser) functionBody(kind string) (functionExpr *ExprFunction, err erro
 			return nil, err
 		}
 		parameters = append(parameters, param)
+
+		_, err = p.consume(Comma, "Expect ',' between parameters.")
+		if err != nil {
+			break
+		}
 	}
 	_, err = p.consume(RightParen, "Expect ')' after parameters.")
 	if err != nil {
@@ -674,8 +669,7 @@ func (p *Parser) finishCall(expr Expr) (Expr, error) {
 		for {
 			if len(arguments) >= 255 {
 				// Error here is just shown but doesn't stop parser execution as the parser is not in panic mode
-				p.hadError = true
-				fmt.Fprintln(os.Stderr, NewParserError(p.peek(), "Can't have more than 255 arguments."))
+				report(p.peek().Line, fmt.Sprintf(" at '%s'", p.peek().Lexeme), "Can't have more than 255 arguments.")
 			}
 
 			arg, err := p.expression()

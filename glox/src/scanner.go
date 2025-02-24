@@ -141,7 +141,7 @@ func (scanner *Scanner) scanToken() (err error) {
 		} else if IsAlpha(c) {
 			err = scanner.identifier()
 		} else {
-			err = fmt.Errorf("Unexpected character.")
+			report(scanner.line, "", "Unexpected character.")
 		}
 	}
 
