@@ -253,7 +253,7 @@ func (interpreter *Interpreter) visitBinaryExpr(expr *ExprBinary) (any, error) {
 }
 
 func (interpreter *Interpreter) visitFunctionExpr(expr *ExprFunction) (any, error) {
-	return NewFunction(NewStmtFunction(nil, expr.params, expr.body), interpreter.enviroment), nil
+	return NewFunction(NewStmtFunction(nil, expr), interpreter.enviroment), nil
 }
 
 func (interpreter *Interpreter) visitCallExpr(expr *ExprCall) (any, error) {

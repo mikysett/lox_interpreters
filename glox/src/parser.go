@@ -129,20 +129,15 @@ func (p *Parser) function(kind string) (stmt Stmt, err error) {
 		return nil, err
 	}
 
-	parts, err := p.functionParts(kind)
+	function, err := p.functionBody(kind)
 	if err != nil {
 		return nil, err
 	}
 
-	return NewStmtFunction(name, parts.params, parts.body), nil
+	return NewStmtFunction(name, function), nil
 }
 
-type FunctionParts struct {
-	params []*Token
-	body   []Stmt
-}
-
-func (p *Parser) functionParts(kind string) (functionParts *FunctionParts, err error) {
+func (p *Parser) functionBody(kind string) (functionExpr *ExprFunction, err error) {
 	_, err = p.consume(LeftParen, "Expect '(' after "+kind+" name.")
 	if err != nil {
 		return nil, err
@@ -183,7 +178,7 @@ func (p *Parser) functionParts(kind string) (functionParts *FunctionParts, err e
 		return nil, err
 	}
 
-	return &FunctionParts{parameters, body}, nil
+	return NewExprFunction(parameters, body), nil
 }
 
 func (p *Parser) block() (stmts []Stmt, err error) {
@@ -726,11 +721,11 @@ func (p *Parser) primary() (Expr, error) {
 		return NewExprVariable(p.previous()), nil
 	} else if p.match(Fun) {
 		// return p.functionExpr("function");
-		parts, err := p.functionParts("function")
+		function, err := p.functionBody("function")
 		if err != nil {
 			return nil, err
 		}
-		return NewExprFunction(parts.params, parts.body), nil
+		return NewExprFunction(function.params, function.body), nil
 	}
 	return nil, NewParserError(p.peek(), "Expect expression.")
 }

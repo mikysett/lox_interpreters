@@ -31,18 +31,16 @@ func (stmt *StmtBlock) accept(v StmtVisitor) error {
 	return v.visitBlockStmt(stmt)
 }
 
-// Function   : Token name, List<Token> params, List<Stmt> body
+// Function   : Token name, ExprFunction body
 type StmtFunction struct {
-	name   *Token
-	params []*Token
-	body   []Stmt
+	name     *Token
+	function *ExprFunction
 }
 
-func NewStmtFunction(name *Token, params []*Token, body []Stmt) *StmtFunction {
+func NewStmtFunction(name *Token, function *ExprFunction) *StmtFunction {
 	return &StmtFunction{
-		name:   name,
-		params: params,
-		body:   body,
+		name:     name,
+		function: function,
 	}
 }
 

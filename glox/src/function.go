@@ -15,17 +15,17 @@ func NewFunction(declaration *StmtFunction, closure *Environment) *Function {
 }
 
 func (f *Function) arity() int {
-	return len(f.declaration.params)
+	return len(f.declaration.function.params)
 }
 
 func (f *Function) call(interpreter *Interpreter, arguments []any) (any, error) {
 	env := NewEnvironment().withEnclosing(f.closure)
 
-	for i, param := range f.declaration.params {
+	for i, param := range f.declaration.function.params {
 		env.define(param.Lexeme, arguments[i])
 	}
 
-	err := interpreter.executeBlock(f.declaration.body, env)
+	err := interpreter.executeBlock(f.declaration.function.body, env)
 	if res, ok := err.(*ReturnShortCircuit); ok {
 		return res.value, nil
 	}
