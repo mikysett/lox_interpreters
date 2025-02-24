@@ -10,7 +10,8 @@ import (
 //                | varDecl
 //                | statement ;
 // funDecl        → "fun" function ;
-// function       → IDENTIFIER "(" parameters? ")" block ;
+// function       → IDENTIFIER functionParts ;
+// functionParts  → "(" parameters? ")" block ;
 // parameters     → IDENTIFIER ( "," IDENTIFIER )* ;
 // varDecl        → "var" IDENTIFIER ( "=" commaOperator )? ";" ;
 // statement      → exprStmt
@@ -49,7 +50,9 @@ import (
 // primary        → "true" | "false" | "nil"
 //                | NUMBER | STRING
 //                | "(" expression ")"
+//                | functionExpr
 //                | IDENTIFIER ;
+// functionExpr   → "fun" "(" parameters? ")" block ;
 
 type ParseError struct {
 	token   *Token
@@ -111,7 +114,9 @@ func (p *Parser) declaration() (stmt Stmt, err error) {
 	}()
 	if p.match(Var) {
 		return p.varDeclaration()
-	} else if p.match(Fun) {
+	} else if p.check(Fun) && p.checkNext(Identifier) {
+		// Consume `Fun` token
+		p.advance()
 		return p.function("function")
 	}
 
@@ -124,6 +129,20 @@ func (p *Parser) function(kind string) (stmt Stmt, err error) {
 		return nil, err
 	}
 
+	parts, err := p.functionParts(kind)
+	if err != nil {
+		return nil, err
+	}
+
+	return NewStmtFunction(name, parts.params, parts.body), nil
+}
+
+type FunctionParts struct {
+	params []*Token
+	body   []Stmt
+}
+
+func (p *Parser) functionParts(kind string) (functionParts *FunctionParts, err error) {
 	_, err = p.consume(LeftParen, "Expect '(' after "+kind+" name.")
 	if err != nil {
 		return nil, err
@@ -164,7 +183,7 @@ func (p *Parser) function(kind string) (stmt Stmt, err error) {
 		return nil, err
 	}
 
-	return NewStmtFunction(name, parameters, body), nil
+	return &FunctionParts{parameters, body}, nil
 }
 
 func (p *Parser) block() (stmts []Stmt, err error) {
@@ -705,6 +724,13 @@ func (p *Parser) primary() (Expr, error) {
 		return NewExprGrouping(expr), nil
 	} else if p.match(Identifier) {
 		return NewExprVariable(p.previous()), nil
+	} else if p.match(Fun) {
+		// return p.functionExpr("function");
+		parts, err := p.functionParts("function")
+		if err != nil {
+			return nil, err
+		}
+		return NewExprFunction(parts.params, parts.body), nil
 	}
 	return nil, NewParserError(p.peek(), "Expect expression.")
 }
@@ -737,6 +763,14 @@ func (p *Parser) check(tokenType TokenType) bool {
 		return false
 	}
 	return p.peek().Type == tokenType
+}
+
+// Return `true` if the next token == [tokenType] but do not move the parser's cursor
+func (p *Parser) checkNext(tokenType TokenType) bool {
+	if p.isAtEnd() || p.tokens[p.current+1].Type == EOF {
+		return false
+	}
+	return p.tokens[p.current+1].Type == tokenType
 }
 
 func (p *Parser) peek() *Token {

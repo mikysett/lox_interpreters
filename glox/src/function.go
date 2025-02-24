@@ -36,5 +36,8 @@ func (f *Function) call(interpreter *Interpreter, arguments []any) (any, error) 
 }
 
 func (f *Function) String() string {
+	if f.declaration.name == nil {
+		return "<fn>"
+	}
 	return fmt.Sprintf("<fn %s>", f.declaration.name.Lexeme)
 }

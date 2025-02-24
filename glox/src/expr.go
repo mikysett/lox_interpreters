@@ -6,6 +6,7 @@ type Expr interface {
 
 type ExprVisitor interface {
 	visitBinaryExpr(*ExprBinary) (any, error)
+	visitFunctionExpr(*ExprFunction) (any, error)
 	visitCallExpr(*ExprCall) (any, error)
 	visitTernaryExpr(*ExprTernary) (any, error)
 	visitGroupingExpr(*ExprGrouping) (any, error)
@@ -50,6 +51,23 @@ func NewExprBinary(left Expr, operator *Token, right Expr) *ExprBinary {
 
 func (expr *ExprBinary) accept(v ExprVisitor) (any, error) {
 	return v.visitBinaryExpr(expr)
+}
+
+// ExprFunction   : List<Token> params, List<Stmt> body
+type ExprFunction struct {
+	params []*Token
+	body   []Stmt
+}
+
+func NewExprFunction(params []*Token, body []Stmt) *ExprFunction {
+	return &ExprFunction{
+		params: params,
+		body:   body,
+	}
+}
+
+func (stmt *ExprFunction) accept(v ExprVisitor) (any, error) {
+	return v.visitFunctionExpr(stmt)
 }
 
 // Call     : Expr callee, Token paren, List<Expr> arguments

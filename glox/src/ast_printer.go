@@ -25,6 +25,10 @@ func (ast *AstPrinter) visitBinaryExpr(expr *ExprBinary) (any, error) {
 	return ast.parenthesize(expr.operator.Lexeme, expr.left, expr.right)
 }
 
+func (ast *AstPrinter) visitFunctionExpr(expr *ExprFunction) (any, error) {
+	panic("not implemented")
+}
+
 func (ast *AstPrinter) visitCallExpr(expr *ExprCall) (any, error) {
 	astResult, _ := expr.accept(ast)
 	fnName, ok := astResult.(string)
