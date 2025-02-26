@@ -144,7 +144,7 @@ func (p *Parser) functionBody(kind string) (functionExpr *ExprFunction, err erro
 	for !p.check(RightParen) {
 		if len(parameters) >= 255 {
 			// Error here is just shown but doesn't stop parser execution as the parser is not in panic mode
-			report(p.peek().Line, fmt.Sprintf(" at '%s'", p.peek().Lexeme), "Can't have more than 255 parameters.")
+			printError(p.peek(), "Can't have more than 255 parameters.")
 		}
 
 		param, err := p.consume(Identifier, "Expect parameter name.")
@@ -669,7 +669,7 @@ func (p *Parser) finishCall(expr Expr) (Expr, error) {
 		for {
 			if len(arguments) >= 255 {
 				// Error here is just shown but doesn't stop parser execution as the parser is not in panic mode
-				report(p.peek().Line, fmt.Sprintf(" at '%s'", p.peek().Lexeme), "Can't have more than 255 arguments.")
+				printError(p.peek(), "Can't have more than 255 arguments.")
 			}
 
 			arg, err := p.expression()
