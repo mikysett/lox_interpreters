@@ -108,6 +108,14 @@ func run(source string, interpreter *Interpreter) (err error) {
 		return NewParserError(parser.peek(), "Don't run interpreter due to previous errors.")
 	}
 
+	resolver := NewResolver(interpreter)
+	// The resolver never returns errors so we can safely skip the check
+	resolver.resolveStmts(stmts)
+
+	if hadError {
+		return NewParserError(parser.peek(), "Don't run interpreter due to previous errors.")
+	}
+
 	err = interpreter.interpret(stmts)
 	if err != nil {
 		fmt.Fprintln(os.Stderr, err)

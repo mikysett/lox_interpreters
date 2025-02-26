@@ -24,6 +24,7 @@ func NewRuntimeError(token *Token, message string) *RuntimeError {
 type Interpreter struct {
 	enviroment *Environment
 	globals    *Environment
+	locals     map[Expr]int
 }
 
 func NewInterpreter() *Interpreter {
@@ -39,6 +40,7 @@ func NewInterpreter() *Interpreter {
 	return &Interpreter{
 		globals:    globals,
 		enviroment: globals,
+		locals:     map[Expr]int{},
 	}
 }
 
@@ -54,6 +56,10 @@ func (i *Interpreter) interpret(stmts []Stmt) error {
 
 func (i *Interpreter) evaluate(expr Expr) (any, error) {
 	return expr.accept(i)
+}
+
+func (i *Interpreter) resolve(expr Expr, depth int) {
+	i.locals[expr] = depth
 }
 
 func (i *Interpreter) execute(stmt Stmt) error {
@@ -103,10 +109,17 @@ func (interpreter *Interpreter) visitAssignExpr(expr *ExprAssign) (any, error) {
 	if err != nil {
 		return nil, err
 	}
-	err = interpreter.enviroment.assign(expr.name, val)
+
+	if distance, ok := interpreter.locals[expr]; ok {
+		interpreter.enviroment.assignAt(distance, expr.name, val)
+		return val, nil
+	}
+
+	err = interpreter.globals.assign(expr.name, val)
 	if err != nil {
 		return nil, err
 	}
+
 	return val, nil
 }
 
@@ -357,7 +370,14 @@ func (interpreter *Interpreter) visitUnaryExpr(expr *ExprUnary) (any, error) {
 }
 
 func (interpreter *Interpreter) visitVariableExpr(expr *ExprVariable) (any, error) {
-	return interpreter.enviroment.get(expr.name)
+	return interpreter.lookUpVariable(expr.name, expr)
+}
+
+func (interpreter *Interpreter) lookUpVariable(name *Token, expr Expr) (any, error) {
+	if distance, ok := interpreter.locals[expr]; ok {
+		return interpreter.enviroment.getAt(distance, name), nil
+	}
+	return interpreter.globals.get(name)
 }
 
 func checkNumberOperand(operator *Token, operand any) error {
