@@ -24,10 +24,17 @@ var hadError = false
 // For example: `3 < 2` will print `false` in the REPL and throw an error in a file.
 var isReplMode = false
 
-var memprofile = flag.String("memprofile", "", "write memory profile to `file`")
+var (
+	memprofile    = flag.String("memprofile", "", "write memory profile to `file`")
+	disableExtras = flag.Bool("disable-extras", false, "exclude extra features (`false` by default)")
+)
 
 func main() {
 	flag.Parse()
+	if *disableExtras {
+		GlobalConfig = BasicConfig
+	}
+
 	if len(flag.Args()) > 1 {
 		println("Usage: glox [script]")
 		os.Exit(exUsage)

@@ -44,13 +44,17 @@ func (env *Environment) get(name *Token) (any, error) {
 	value, ok := env.values[name.Lexeme]
 	if !ok && env.enclosing != nil {
 		return env.enclosing.get(name)
-	} else if ok {
-		if isOfType[Uninitialized](value) {
-			return nil, NewRuntimeError(name, "Uninitialized variable '"+name.Lexeme+"'.")
-		}
-		return value, nil
+	} else if !ok {
+		return nil, NewRuntimeError(name, "Undefined variable '"+name.Lexeme+"'.")
 	}
-	return nil, NewRuntimeError(name, "Undefined variable '"+name.Lexeme+"'.")
+	if isOfType[Uninitialized](value) {
+		if GlobalConfig.ForbidUninitializedVariable {
+			return nil, NewRuntimeError(name, "Uninitialized variable '"+name.Lexeme+"'.")
+		} else {
+			return nil, nil
+		}
+	}
+	return value, nil
 }
 
 func (env *Environment) getAt(distance int, name *Token) any {

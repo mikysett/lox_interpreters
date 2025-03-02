@@ -252,7 +252,9 @@ func (interpreter *Interpreter) visitBinaryExpr(expr *ExprBinary) (any, error) {
 		if err == nil {
 			return left.(float64) + right.(float64), nil
 		}
-		if isOfType[string](left) || isOfType[string](right) {
+		isLeftString, isRightString := isOfType[string](left), isOfType[string](right)
+		if (isLeftString && isRightString) ||
+			(GlobalConfig.AllowImplicitStringCast && (isLeftString || isRightString)) {
 			return stringify(left) + stringify(right), nil
 		}
 		// This error message is not 100% correct (see case above)

@@ -92,7 +92,7 @@ func (resolver *Resolver) beginScope() {
 
 func (resolver *Resolver) endScope() {
 	for _, localVar := range resolver.scopes.peek() {
-		if !localVar.isUsed {
+		if !localVar.isUsed && GlobalConfig.ForbidUnusedVariable {
 			printError(localVar.declaration, "Variable declared but never read")
 		}
 	}
