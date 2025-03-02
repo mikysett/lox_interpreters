@@ -13,21 +13,41 @@ type Resolver struct {
 	currentFunction FunctionType
 }
 
-type Scopes [](map[string]bool)
+type Scopes []Scope
+
+type Scope map[string]*LocalVariable
+
+type LocalVariable struct {
+	declaration   *Token
+	isInitialized bool
+	isUsed        bool
+	// TODO: Implement index to speed lookup in interpreter
+	// scopedIndex   int
+}
 
 func NewScopes() *Scopes {
 	return &Scopes{}
 }
 
+func NewScope() Scope {
+	return Scope{}
+}
+
+func NewLocalVariable(declaration *Token) *LocalVariable {
+	return &LocalVariable{
+		declaration: declaration,
+	}
+}
+
 func (s *Scopes) push() {
-	*s = append(*s, map[string]bool{})
+	*s = append(*s, NewScope())
 }
 
 func (s *Scopes) pop() {
 	*s = (*s)[:len(*s)-1]
 }
 
-func (s *Scopes) peek() map[string]bool {
+func (s *Scopes) peek() Scope {
 	return (*s)[len(*s)-1]
 }
 
@@ -71,6 +91,11 @@ func (resolver *Resolver) beginScope() {
 }
 
 func (resolver *Resolver) endScope() {
+	for _, localVar := range resolver.scopes.peek() {
+		if !localVar.isUsed {
+			printError(localVar.declaration, "Variable declared but never read")
+		}
+	}
 	resolver.scopes.pop()
 }
 
@@ -83,7 +108,7 @@ func (resolver *Resolver) declare(name *Token) {
 		printError(name, "Already a variable with this name in this scope.")
 	}
 
-	scope[name.Lexeme] = false
+	scope[name.Lexeme] = NewLocalVariable(name)
 }
 
 func (resolver *Resolver) define(name *Token) {
@@ -91,7 +116,7 @@ func (resolver *Resolver) define(name *Token) {
 		return
 	}
 	scope := resolver.scopes.peek()
-	scope[name.Lexeme] = true
+	scope[name.Lexeme].isInitialized = true
 }
 
 func (resolver *Resolver) visitBreakStmt(stmt *StmtBreak) error {
@@ -109,7 +134,7 @@ func (resolver *Resolver) visitVarStmt(stmt *StmtVar) (err error) {
 
 func (resolver *Resolver) visitAssignExpr(expr *ExprAssign) (any, error) {
 	resolver.resolveExpr(expr.value)
-	resolver.resolveLocal(expr, expr.name)
+	resolver.resolveLocal(expr, expr.name, false)
 	return nil, nil
 }
 
@@ -202,17 +227,20 @@ func (resolver *Resolver) visitUnaryExpr(expr *ExprUnary) (any, error) {
 
 func (resolver *Resolver) visitVariableExpr(expr *ExprVariable) (any, error) {
 	if !resolver.scopes.isEmpty() {
-		if initialized, ok := resolver.scopes.peek()[expr.name.Lexeme]; ok && !initialized {
+		if localVar, ok := resolver.scopes.peek()[expr.name.Lexeme]; ok && !localVar.isInitialized {
 			printError(expr.name, "Can't read local variable in its own initializer.")
 		}
 	}
-	resolver.resolveLocal(expr, expr.name)
+	resolver.resolveLocal(expr, expr.name, true)
 	return nil, nil
 }
 
-func (resolver *Resolver) resolveLocal(expr Expr, name *Token) {
+func (resolver *Resolver) resolveLocal(expr Expr, name *Token, isRead bool) {
 	for i := len(*resolver.scopes) - 1; i >= 0; i-- {
-		if _, ok := (*resolver.scopes)[i][name.Lexeme]; ok {
+		if localVar, ok := (*resolver.scopes)[i][name.Lexeme]; ok {
+			if isRead {
+				localVar.isUsed = true
+			}
 			resolver.interpreter.resolve(expr, len(*resolver.scopes)-1-i)
 			return
 		}
