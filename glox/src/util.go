@@ -5,11 +5,14 @@ import (
 	"os"
 )
 
+// For a more convenient wrapper use [printError]
+// Set global [hadError] to true and writes the error to stderr
 func report(line int, where, message string) {
 	hadError = true
 	fmt.Fprintf(os.Stderr, "[line %v] Error%v: %v\n", line, where, message)
 }
 
+// Set global [hadError] to true and writes the error to stderr
 func printError(token *Token, message string) {
 	if token.Type == EOF {
 		report(token.Line, " at end", message)
