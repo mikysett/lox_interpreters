@@ -24,7 +24,12 @@ func NewRuntimeError(token *Token, message string) *RuntimeError {
 type Interpreter struct {
 	enviroment *Environment
 	globals    *Environment
-	locals     map[Expr]int
+	locals     map[Expr]Position
+}
+
+type Position struct {
+	depth int
+	index int
 }
 
 func NewInterpreter() *Interpreter {
@@ -40,7 +45,7 @@ func NewInterpreter() *Interpreter {
 	return &Interpreter{
 		globals:    globals,
 		enviroment: globals,
-		locals:     map[Expr]int{},
+		locals:     map[Expr]Position{},
 	}
 }
 
@@ -58,8 +63,8 @@ func (i *Interpreter) evaluate(expr Expr) (any, error) {
 	return expr.accept(i)
 }
 
-func (i *Interpreter) resolve(expr Expr, depth int) {
-	i.locals[expr] = depth
+func (i *Interpreter) resolve(expr Expr, depth int, index int) {
+	i.locals[expr] = Position{depth, index}
 }
 
 func (i *Interpreter) execute(stmt Stmt) error {
@@ -110,8 +115,8 @@ func (interpreter *Interpreter) visitAssignExpr(expr *ExprAssign) (any, error) {
 		return nil, err
 	}
 
-	if distance, ok := interpreter.locals[expr]; ok {
-		interpreter.enviroment.assignAt(distance, expr.name, val)
+	if position, ok := interpreter.locals[expr]; ok {
+		interpreter.enviroment.assignAt(position, val)
 		return val, nil
 	}
 
@@ -376,8 +381,8 @@ func (interpreter *Interpreter) visitVariableExpr(expr *ExprVariable) (any, erro
 }
 
 func (interpreter *Interpreter) lookUpVariable(name *Token, expr Expr) (any, error) {
-	if distance, ok := interpreter.locals[expr]; ok {
-		return interpreter.enviroment.getAt(distance, name), nil
+	if position, ok := interpreter.locals[expr]; ok {
+		return interpreter.enviroment.getAt(position), nil
 	}
 	return interpreter.globals.get(name)
 }

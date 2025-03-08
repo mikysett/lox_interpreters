@@ -3,7 +3,7 @@ package main
 type Environment struct {
 	// Parent-pointer tree (cactus stack)
 	enclosing *Environment
-	values    map[string]any
+	values    []any
 }
 
 type Uninitialized struct{}
@@ -11,7 +11,7 @@ type Uninitialized struct{}
 func NewEnvironment() *Environment {
 	return &Environment{
 		enclosing: nil,
-		values:    map[string]any{},
+		values:    []any{},
 	}
 }
 
@@ -20,8 +20,8 @@ func (env *Environment) withEnclosing(enclosing *Environment) *Environment {
 	return env
 }
 
-func (env *Environment) define(k string, v any) {
-	env.values[k] = v
+func (env *Environment) define(v any) {
+	env.values = append(env.values, v)
 }
 
 func (env *Environment) assign(name *Token, value any) error {
@@ -36,8 +36,8 @@ func (env *Environment) assign(name *Token, value any) error {
 	return NewRuntimeError(name, "Undefined variable '"+name.Lexeme+"'.")
 }
 
-func (env *Environment) assignAt(distance int, name *Token, value any) {
-	env.ancestor(distance).values[name.Lexeme] = value
+func (env *Environment) assignAt(position Position, value any) {
+	env.ancestor(position.depth).values[position.index] = value
 }
 
 func (env *Environment) get(name *Token) (any, error) {
@@ -57,8 +57,8 @@ func (env *Environment) get(name *Token) (any, error) {
 	return value, nil
 }
 
-func (env *Environment) getAt(distance int, name *Token) any {
-	return env.ancestor(distance).values[name.Lexeme]
+func (env *Environment) getAt(position Position) any {
+	return env.ancestor(position.depth).values[position.index]
 }
 
 func (env *Environment) ancestor(distance int) *Environment {
