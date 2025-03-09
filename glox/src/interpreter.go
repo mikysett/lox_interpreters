@@ -24,12 +24,17 @@ func NewRuntimeError(token *Token, message string) *RuntimeError {
 type Interpreter struct {
 	enviroment *Environment
 	globals    *Environment
-	locals     map[Expr]int
+	locals     map[Expr]*Position
+}
+
+type Position struct {
+	depth int
+	index int
 }
 
 func NewInterpreter() *Interpreter {
-	globals := NewEnvironment()
-	globals.define("clock", NewProtoCallable(
+	globals := NewGlobalEnvironment()
+	globals.defineGlobal("clock", NewProtoCallable(
 		func() int { return 0 },
 		func(interpreter *Interpreter, arguments []any) (any, error) {
 			return float64(time.Now().Unix()), nil
@@ -40,7 +45,7 @@ func NewInterpreter() *Interpreter {
 	return &Interpreter{
 		globals:    globals,
 		enviroment: globals,
-		locals:     map[Expr]int{},
+		locals:     map[Expr]*Position{},
 	}
 }
 
@@ -58,8 +63,8 @@ func (i *Interpreter) evaluate(expr Expr) (any, error) {
 	return expr.accept(i)
 }
 
-func (i *Interpreter) resolve(expr Expr, depth int) {
-	i.locals[expr] = depth
+func (i *Interpreter) resolve(expr Expr, depth int, index int) {
+	i.locals[expr] = &Position{depth, index}
 }
 
 func (i *Interpreter) execute(stmt Stmt) error {
@@ -67,7 +72,7 @@ func (i *Interpreter) execute(stmt Stmt) error {
 }
 
 func (interpreter *Interpreter) visitBlockStmt(stmt *StmtBlock) error {
-	return interpreter.executeBlock(stmt.block, NewEnvironment().withEnclosing(interpreter.enviroment))
+	return interpreter.executeBlock(stmt.block, NewLocalEnvironment().WithEnclosing(interpreter.enviroment))
 }
 
 func (interpreter *Interpreter) visitBreakStmt(stmt *StmtBreak) error {
@@ -100,7 +105,13 @@ func (interpreter *Interpreter) visitVarStmt(stmt *StmtVar) (err error) {
 	} else {
 		value = Uninitialized{}
 	}
-	interpreter.enviroment.define(stmt.name.Lexeme, value)
+
+	if interpreter.enviroment.enclosing == nil {
+		interpreter.enviroment.defineGlobal(stmt.name.Lexeme, value)
+	} else {
+		interpreter.enviroment.define(value)
+	}
+
 	return nil
 }
 
@@ -110,8 +121,8 @@ func (interpreter *Interpreter) visitAssignExpr(expr *ExprAssign) (any, error) {
 		return nil, err
 	}
 
-	if distance, ok := interpreter.locals[expr]; ok {
-		interpreter.enviroment.assignAt(distance, expr.name, val)
+	if position, ok := interpreter.locals[expr]; ok {
+		interpreter.enviroment.assignAt(position, val)
 		return val, nil
 	}
 
@@ -130,7 +141,11 @@ func (interpreter *Interpreter) visitExpressionStmt(stmt *StmtExpression) error 
 
 func (interpreter *Interpreter) visitFunctionStmt(stmt *StmtFunction) error {
 	function := NewFunction(stmt, interpreter.enviroment)
-	interpreter.enviroment.define(stmt.name.Lexeme, function)
+	if interpreter.enviroment.enclosing == nil {
+		interpreter.enviroment.defineGlobal(stmt.name.Lexeme, function)
+	} else {
+		interpreter.enviroment.define(function)
+	}
 	return nil
 }
 
@@ -376,8 +391,8 @@ func (interpreter *Interpreter) visitVariableExpr(expr *ExprVariable) (any, erro
 }
 
 func (interpreter *Interpreter) lookUpVariable(name *Token, expr Expr) (any, error) {
-	if distance, ok := interpreter.locals[expr]; ok {
-		return interpreter.enviroment.getAt(distance, name), nil
+	if position, ok := interpreter.locals[expr]; ok {
+		return interpreter.enviroment.getAt(position)
 	}
 	return interpreter.globals.get(name)
 }

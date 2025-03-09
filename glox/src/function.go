@@ -19,10 +19,10 @@ func (f *Function) arity() int {
 }
 
 func (f *Function) call(interpreter *Interpreter, arguments []any) (any, error) {
-	env := NewEnvironment().withEnclosing(f.closure)
+	env := NewLocalEnvironment().WithEnclosing(f.closure)
 
-	for i, param := range f.declaration.function.params {
-		env.define(param.Lexeme, arguments[i])
+	for i := range f.declaration.function.params {
+		env.define(arguments[i])
 	}
 
 	err := interpreter.executeBlock(f.declaration.function.body, env)

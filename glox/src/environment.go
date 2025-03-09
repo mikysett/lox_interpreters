@@ -2,46 +2,57 @@ package main
 
 type Environment struct {
 	// Parent-pointer tree (cactus stack)
-	enclosing *Environment
-	values    map[string]any
+	enclosing    *Environment
+	globalValues map[string]any
+	localValues  []any
 }
 
 type Uninitialized struct{}
 
-func NewEnvironment() *Environment {
+func NewGlobalEnvironment() *Environment {
 	return &Environment{
-		enclosing: nil,
-		values:    map[string]any{},
+		enclosing:    nil,
+		localValues:  nil,
+		globalValues: map[string]any{},
 	}
 }
 
-func (env *Environment) withEnclosing(enclosing *Environment) *Environment {
+func NewLocalEnvironment() *Environment {
+	return &Environment{
+		enclosing:    nil,
+		localValues:  []any{},
+		globalValues: nil,
+	}
+}
+
+func (env *Environment) WithEnclosing(enclosing *Environment) *Environment {
 	env.enclosing = enclosing
 	return env
 }
 
-func (env *Environment) define(k string, v any) {
-	env.values[k] = v
+func (env *Environment) defineGlobal(k string, v any) {
+	env.globalValues[k] = v
+}
+
+func (env *Environment) define(v any) {
+	env.localValues = append(env.localValues, v)
 }
 
 func (env *Environment) assign(name *Token, value any) error {
-	_, ok := env.values[name.Lexeme]
+	_, ok := env.globalValues[name.Lexeme]
 	if ok {
-		env.values[name.Lexeme] = value
+		env.globalValues[name.Lexeme] = value
 		return nil
-	}
-	if env.enclosing != nil {
-		return env.enclosing.assign(name, value)
 	}
 	return NewRuntimeError(name, "Undefined variable '"+name.Lexeme+"'.")
 }
 
-func (env *Environment) assignAt(distance int, name *Token, value any) {
-	env.ancestor(distance).values[name.Lexeme] = value
+func (env *Environment) assignAt(position *Position, value any) {
+	env.ancestor(position.depth).localValues[position.index] = value
 }
 
 func (env *Environment) get(name *Token) (any, error) {
-	value, ok := env.values[name.Lexeme]
+	value, ok := env.globalValues[name.Lexeme]
 	if !ok && env.enclosing != nil {
 		return env.enclosing.get(name)
 	} else if !ok {
@@ -57,12 +68,12 @@ func (env *Environment) get(name *Token) (any, error) {
 	return value, nil
 }
 
-func (env *Environment) getAt(distance int, name *Token) any {
-	return env.ancestor(distance).values[name.Lexeme]
+func (env *Environment) getAt(position *Position) (any, error) {
+	return env.ancestor(position.depth).localValues[position.index], nil
 }
 
 func (env *Environment) ancestor(distance int) *Environment {
-	for i := 0; i < distance; i++ {
+	for range distance {
 		env = env.enclosing
 	}
 	return env
