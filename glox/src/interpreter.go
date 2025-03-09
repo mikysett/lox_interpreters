@@ -23,7 +23,7 @@ func NewRuntimeError(token *Token, message string) *RuntimeError {
 
 type Interpreter struct {
 	enviroment *Environment
-	globals    *Environment
+	globals    map[string]any
 	locals     map[Expr]*Position
 }
 
@@ -33,18 +33,19 @@ type Position struct {
 }
 
 func NewInterpreter() *Interpreter {
-	globals := NewGlobalEnvironment()
-	globals.defineGlobal("clock", NewProtoCallable(
-		func() int { return 0 },
-		func(interpreter *Interpreter, arguments []any) (any, error) {
-			return float64(time.Now().Unix()), nil
-		},
-		func() string { return "<native fn>" },
-	))
+	globals := map[string]any{
+		"clock": NewProtoCallable(
+			func() int { return 0 },
+			func(interpreter *Interpreter, arguments []any) (any, error) {
+				return float64(time.Now().Unix()), nil
+			},
+			func() string { return "<native fn>" },
+		),
+	}
 
 	return &Interpreter{
 		globals:    globals,
-		enviroment: globals,
+		enviroment: NewEnvironment(),
 		locals:     map[Expr]*Position{},
 	}
 }
@@ -72,7 +73,7 @@ func (i *Interpreter) execute(stmt Stmt) error {
 }
 
 func (interpreter *Interpreter) visitBlockStmt(stmt *StmtBlock) error {
-	return interpreter.executeBlock(stmt.block, NewLocalEnvironment().WithEnclosing(interpreter.enviroment))
+	return interpreter.executeBlock(stmt.block, NewEnvironment().WithEnclosing(interpreter.enviroment))
 }
 
 func (interpreter *Interpreter) visitBreakStmt(stmt *StmtBreak) error {
@@ -107,7 +108,7 @@ func (interpreter *Interpreter) visitVarStmt(stmt *StmtVar) (err error) {
 	}
 
 	if interpreter.enviroment.enclosing == nil {
-		interpreter.enviroment.defineGlobal(stmt.name.Lexeme, value)
+		interpreter.globals[stmt.name.Lexeme] = value
 	} else {
 		interpreter.enviroment.define(value)
 	}
@@ -126,12 +127,12 @@ func (interpreter *Interpreter) visitAssignExpr(expr *ExprAssign) (any, error) {
 		return val, nil
 	}
 
-	err = interpreter.globals.assign(expr.name, val)
-	if err != nil {
-		return nil, err
+	_, ok := interpreter.globals[expr.name.Lexeme]
+	if ok {
+		interpreter.globals[expr.name.Lexeme] = val
+		return val, nil
 	}
-
-	return val, nil
+	return nil, NewRuntimeError(expr.name, "Undefined variable '"+expr.name.Lexeme+"'.")
 }
 
 func (interpreter *Interpreter) visitExpressionStmt(stmt *StmtExpression) error {
@@ -142,7 +143,7 @@ func (interpreter *Interpreter) visitExpressionStmt(stmt *StmtExpression) error 
 func (interpreter *Interpreter) visitFunctionStmt(stmt *StmtFunction) error {
 	function := NewFunction(stmt, interpreter.enviroment)
 	if interpreter.enviroment.enclosing == nil {
-		interpreter.enviroment.defineGlobal(stmt.name.Lexeme, function)
+		interpreter.globals[stmt.name.Lexeme] = function
 	} else {
 		interpreter.enviroment.define(function)
 	}
@@ -394,7 +395,19 @@ func (interpreter *Interpreter) lookUpVariable(name *Token, expr Expr) (any, err
 	if position, ok := interpreter.locals[expr]; ok {
 		return interpreter.enviroment.getAt(position)
 	}
-	return interpreter.globals.get(name)
+
+	value, ok := interpreter.globals[name.Lexeme]
+	if !ok {
+		return nil, NewRuntimeError(name, "Undefined variable '"+name.Lexeme+"'.")
+	}
+	if isOfType[Uninitialized](value) {
+		if GlobalConfig.ForbidUninitializedVariable {
+			return nil, NewRuntimeError(name, "Uninitialized variable '"+name.Lexeme+"'.")
+		} else {
+			return nil, nil
+		}
+	}
+	return value, nil
 }
 
 func checkNumberOperand(operator *Token, operand any) error {
