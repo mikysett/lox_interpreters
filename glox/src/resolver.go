@@ -16,14 +16,14 @@ type Resolver struct {
 type Scopes []*Scope
 
 type Scope struct {
-	variables    map[string]*LocalVariable
-	currentIndex int
+	variables       map[string]*LocalVariable
+	currentIndex    int
+	unusedVariables map[*Token]bool
 }
 
 type LocalVariable struct {
 	declaration   *Token
 	isInitialized bool
-	isUsed        bool
 	scopedIndex   int
 }
 
@@ -33,8 +33,9 @@ func NewScopes() *Scopes {
 
 func NewScope() *Scope {
 	return &Scope{
-		variables:    map[string]*LocalVariable{},
-		currentIndex: 0,
+		variables:       map[string]*LocalVariable{},
+		currentIndex:    0,
+		unusedVariables: map[*Token]bool{},
 	}
 }
 
@@ -98,10 +99,9 @@ func (resolver *Resolver) beginScope() {
 }
 
 func (resolver *Resolver) endScope() {
-	// TODO: improve this lookup with a map for better performances
-	for _, localVar := range resolver.scopes.peek().variables {
-		if !localVar.isUsed && GlobalConfig.ForbidUnusedVariable {
-			printError(localVar.declaration, "Variable declared but never read")
+	if GlobalConfig.ForbidUnusedVariable {
+		for varDeclaration := range resolver.scopes.peek().unusedVariables {
+			printError(varDeclaration, "Variable declared but never read")
 		}
 	}
 	resolver.scopes.pop()
@@ -117,6 +117,9 @@ func (resolver *Resolver) declare(name *Token) {
 	}
 
 	scope.NewLocalVariable(name)
+	if GlobalConfig.ForbidUnusedVariable {
+		scope.unusedVariables[name] = true
+	}
 }
 
 func (resolver *Resolver) define(name *Token) {
@@ -246,8 +249,8 @@ func (resolver *Resolver) visitVariableExpr(expr *ExprVariable) (any, error) {
 func (resolver *Resolver) resolveLocal(expr Expr, name *Token, isRead bool) {
 	for i := len(*resolver.scopes) - 1; i >= 0; i-- {
 		if localVar, ok := (*resolver.scopes)[i].variables[name.Lexeme]; ok {
-			if isRead {
-				localVar.isUsed = true
+			if isRead && GlobalConfig.ForbidUnusedVariable {
+				delete((*resolver.scopes)[i].unusedVariables, localVar.declaration)
 			}
 			resolver.interpreter.resolve(expr, len(*resolver.scopes)-1-i, localVar.scopedIndex)
 			return
