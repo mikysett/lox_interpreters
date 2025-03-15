@@ -39,6 +39,10 @@ func (ast *AstPrinter) visitCallExpr(expr *ExprCall) (any, error) {
 	return ast.parenthesize(fnName, expr.arguments...)
 }
 
+func (ast *AstPrinter) visitGetExpr(expr *ExprGet) (any, error) {
+	return ast.parenthesize(".", expr)
+}
+
 func (ast *AstPrinter) visitTernaryExpr(expr *ExprTernary) (any, error) {
 	return ast.parenthesize("?:", expr.condition, expr.left, expr.right)
 }
@@ -63,6 +67,14 @@ func (ast *AstPrinter) visitLiteralExpr(expr *ExprLiteral) (any, error) {
 	default:
 		return fmt.Sprintf("%v", expr.value), nil
 	}
+}
+
+func (ast *AstPrinter) visitSetExpr(expr *ExprSet) (any, error) {
+	return ast.parenthesize(expr.name.Lexeme, expr.object, expr.value)
+}
+
+func (ast *AstPrinter) visitThisExpr(expr *ExprThis) (any, error) {
+	return "this", nil
 }
 
 func (ast *AstPrinter) visitUnaryExpr(expr *ExprUnary) (any, error) {
