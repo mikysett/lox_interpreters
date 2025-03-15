@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"slices"
 )
 
 // program        → declaration* EOF ;
@@ -135,20 +136,30 @@ func (p *Parser) classDeclaration() (Stmt, error) {
 	}
 
 	methods := []*StmtFunction{}
+	staticMethods := []*StmtFunction{}
 	for !p.check(RightBrace) && !p.isAtEnd() {
+		isStaticMethod := false
+		if p.match(Class) {
+			isStaticMethod = true
+		}
+
 		method, err := p.function("method")
 		if err != nil {
 			return nil, err
 		}
 
-		methods = append(methods, method)
+		if isStaticMethod {
+			staticMethods = append(staticMethods, method)
+		} else {
+			methods = append(methods, method)
+		}
 	}
 
 	_, err = p.consume(RightBrace, "Expect '}' after class body.")
 	if err != nil {
 		return nil, err
 	}
-	return NewStmtClass(name, methods), nil
+	return NewStmtClass(name, methods, staticMethods), nil
 }
 
 func (p *Parser) function(kind string) (stmt *StmtFunction, err error) {
@@ -769,11 +780,9 @@ func (p *Parser) primary() (Expr, error) {
 
 // If the current Token.type matches one of the given types returns `true` and advance the parser's cursor
 func (p *Parser) match(types ...TokenType) bool {
-	for _, currType := range types {
-		if p.check(currType) {
-			p.advance()
-			return true
-		}
+	if slices.Contains(types, p.peek().Type) {
+		p.advance()
+		return true
 	}
 	return false
 }

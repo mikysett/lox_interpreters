@@ -92,7 +92,17 @@ func (interpreter *Interpreter) visitClassStmt(stmt *StmtClass) error {
 		methods[method.name.Lexeme] = NewFunction(method, interpreter.enviroment, isInitializer)
 	}
 
-	class := NewLoxClass(stmt.name.Lexeme, methods)
+	staticMethods := map[string]*Function{}
+	for _, staticMethod := range stmt.staticMethods {
+		staticMethods[staticMethod.name.Lexeme] = NewFunction(staticMethod, interpreter.enviroment, false)
+	}
+
+	class := NewLoxClass(
+		// metaclass in order to have static methods on class objects [extra feature]
+		NewLoxInstance(NewLoxClass(nil, stmt.name.Lexeme, staticMethods)),
+		stmt.name.Lexeme,
+		methods)
+
 	if interpreter.enviroment.enclosing == nil {
 		interpreter.globals[stmt.name.Lexeme] = class
 	} else {
@@ -358,6 +368,12 @@ func (interpreter *Interpreter) visitGetExpr(expr *ExprGet) (any, error) {
 		return instance.Get(expr.name)
 	}
 
+	if GlobalConfig.AllowStaticMethods {
+		if class, ok := object.(*LoxClass); ok {
+			return class.metaclass.Get(expr.name)
+		}
+	}
+
 	return nil, NewRuntimeError(expr.name, "Only instances have properties.")
 }
 
@@ -416,7 +432,8 @@ func (interpreter *Interpreter) visitSetExpr(expr *ExprSet) (any, error) {
 		return nil, err
 	}
 
-	if _, ok := object.(*LoxInstance); !ok {
+	if !isOfType[*LoxInstance](object) &&
+		(!GlobalConfig.AllowStaticMethods || !isOfType[*LoxClass](object)) {
 		return nil, NewRuntimeError(expr.name, "Only instances have fields.")
 	}
 
@@ -424,7 +441,12 @@ func (interpreter *Interpreter) visitSetExpr(expr *ExprSet) (any, error) {
 	if err != nil {
 		return nil, err
 	}
-	object.(*LoxInstance).Set(expr.name, value)
+	if obj, ok := object.(*LoxInstance); ok {
+		obj.Set(expr.name, value)
+	}
+	if obj, ok := object.(*LoxClass); ok {
+		obj.metaclass.Set(expr.name, value)
+	}
 
 	return value, nil
 }

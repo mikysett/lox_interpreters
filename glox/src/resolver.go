@@ -126,6 +126,10 @@ func (resolver *Resolver) visitClassStmt(stmt *StmtClass) error {
 		resolver.resolveFunction(method.function, declaration)
 	}
 
+	for _, staticMethod := range stmt.staticMethods {
+		resolver.resolveFunction(staticMethod.function, FunctionTypeMethod)
+	}
+
 	resolver.endScope()
 
 	resolver.currentClass = enclosingClass

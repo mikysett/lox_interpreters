@@ -1,14 +1,16 @@
 package main
 
 type LoxClass struct {
-	name    string
-	methods map[string]*Function
+	metaclass *LoxInstance
+	name      string
+	methods   map[string]*Function
 }
 
-func NewLoxClass(name string, methods map[string]*Function) *LoxClass {
+func NewLoxClass(metaclass *LoxInstance, name string, methods map[string]*Function) *LoxClass {
 	return &LoxClass{
-		name:    name,
-		methods: methods,
+		metaclass: metaclass,
+		name:      name,
+		methods:   methods,
 	}
 }
 
