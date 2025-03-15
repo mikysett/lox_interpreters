@@ -28,8 +28,8 @@ func (env *Environment) assignAt(position *Position, value any) {
 	env.ancestor(position.depth).localValues[position.index] = value
 }
 
-func (env *Environment) getAt(position *Position) (any, error) {
-	return env.ancestor(position.depth).localValues[position.index], nil
+func (env *Environment) getAt(position *Position) any {
+	return env.ancestor(position.depth).localValues[position.index]
 }
 
 func (env *Environment) ancestor(distance int) *Environment {
