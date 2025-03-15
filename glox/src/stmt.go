@@ -12,6 +12,7 @@ type StmtVisitor interface {
 	visitReturnStmt(*StmtReturn) error
 	visitVarStmt(*StmtVar) error
 	visitBlockStmt(*StmtBlock) error
+	visitClassStmt(*StmtClass) error
 	visitWhileStmt(*StmtWhile) error
 	visitBreakStmt(*StmtBreak) error
 }
@@ -29,6 +30,23 @@ func NewStmtBlock(block []Stmt) *StmtBlock {
 
 func (stmt *StmtBlock) accept(v StmtVisitor) error {
 	return v.visitBlockStmt(stmt)
+}
+
+// Class      : Token name, List<StmtFunction> methods
+type StmtClass struct {
+	name    *Token
+	methods []*StmtFunction
+}
+
+func NewStmtClass(name *Token, methods []*StmtFunction) *StmtClass {
+	return &StmtClass{
+		name:    name,
+		methods: methods,
+	}
+}
+
+func (stmt *StmtClass) accept(v StmtVisitor) error {
+	return v.visitClassStmt(stmt)
 }
 
 // Function   : Token name, ExprFunction body
