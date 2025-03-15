@@ -3,14 +3,24 @@ package main
 type FunctionType int
 
 const (
-	None FunctionType = iota
-	Func
+	FunctionTypeNone FunctionType = iota
+	FunctionTypeFunc
+	FunctionTypeInitializer
+	FunctionTypeMethod
+)
+
+type ClassType int
+
+const (
+	ClassTypeNone ClassType = iota
+	ClassTypeClass
 )
 
 type Resolver struct {
 	interpreter     *Interpreter
 	scopes          *Scopes
 	currentFunction FunctionType
+	currentClass    ClassType
 }
 
 type Scopes []*Scope
@@ -67,7 +77,8 @@ func NewResolver(interpreter *Interpreter) *Resolver {
 	return &Resolver{
 		interpreter:     interpreter,
 		scopes:          NewScopes(),
-		currentFunction: None,
+		currentFunction: FunctionTypeNone,
+		currentClass:    ClassTypeNone,
 	}
 }
 
@@ -91,6 +102,33 @@ func (resolver *Resolver) visitBlockStmt(stmt *StmtBlock) error {
 	resolver.beginScope()
 	resolver.resolveStmts(stmt.block)
 	resolver.endScope()
+	return nil
+}
+
+func (resolver *Resolver) visitClassStmt(stmt *StmtClass) error {
+	enclosingClass := resolver.currentClass
+	resolver.currentClass = ClassTypeClass
+
+	resolver.declare(stmt.name)
+	resolver.define(stmt.name)
+
+	resolver.beginScope()
+	thisToken := NewToken(This, "this", True, 0)
+	resolver.scopes.peek().NewLocalVariable(&thisToken)
+
+	for _, method := range stmt.methods {
+		var declaration FunctionType
+		if method.name.Lexeme == "init" {
+			declaration = FunctionTypeInitializer
+		} else {
+			declaration = FunctionTypeMethod
+		}
+		resolver.resolveFunction(method.function, declaration)
+	}
+
+	resolver.endScope()
+
+	resolver.currentClass = enclosingClass
 	return nil
 }
 
@@ -156,7 +194,7 @@ func (resolver *Resolver) visitExpressionStmt(stmt *StmtExpression) error {
 func (resolver *Resolver) visitFunctionStmt(stmt *StmtFunction) error {
 	resolver.declare(stmt.name)
 	resolver.define(stmt.name)
-	resolver.resolveFunction(stmt.function, Func)
+	resolver.resolveFunction(stmt.function, FunctionTypeFunc)
 	return nil
 }
 
@@ -180,10 +218,13 @@ func (resolver *Resolver) visitPrintStmt(stmt *StmtPrint) error {
 }
 
 func (resolver *Resolver) visitReturnStmt(stmt *StmtReturn) (err error) {
-	if resolver.currentFunction == None {
+	if resolver.currentFunction == FunctionTypeNone {
 		printError(stmt.keyword, "Can't return from top-level code.")
 	}
 	if stmt.expression != nil {
+		if resolver.currentFunction == FunctionTypeInitializer {
+			printError(stmt.keyword, "Can't return a value from an initializer.")
+		}
 		resolver.resolveExpr(stmt.expression)
 	}
 	return nil
@@ -196,7 +237,7 @@ func (resolver *Resolver) visitBinaryExpr(expr *ExprBinary) (any, error) {
 }
 
 func (resolver *Resolver) visitFunctionExpr(expr *ExprFunction) (any, error) {
-	resolver.resolveFunction(expr, Func)
+	resolver.resolveFunction(expr, FunctionTypeFunc)
 	return nil, nil
 }
 
@@ -206,6 +247,11 @@ func (resolver *Resolver) visitCallExpr(expr *ExprCall) (any, error) {
 	for _, argumentExpr := range expr.arguments {
 		resolver.resolveExpr(argumentExpr)
 	}
+	return nil, nil
+}
+
+func (resolver *Resolver) visitGetExpr(expr *ExprGet) (any, error) {
+	resolver.resolveExpr(expr.object)
 	return nil, nil
 }
 
@@ -228,6 +274,21 @@ func (resolver *Resolver) visitGroupingExpr(expr *ExprGrouping) (any, error) {
 }
 
 func (resolver *Resolver) visitLiteralExpr(expr *ExprLiteral) (any, error) {
+	return nil, nil
+}
+
+func (resolver *Resolver) visitSetExpr(expr *ExprSet) (any, error) {
+	resolver.resolveExpr(expr.value)
+	resolver.resolveExpr(expr.object)
+	return nil, nil
+}
+
+func (resolver *Resolver) visitThisExpr(expr *ExprThis) (any, error) {
+	if resolver.currentClass != ClassTypeClass {
+		printError(expr.keyword, "Can't use 'this' outside of a class.")
+		return nil, nil
+	}
+	resolver.resolveLocal(expr, expr.keyword, true)
 	return nil, nil
 }
 

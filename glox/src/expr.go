@@ -8,9 +8,12 @@ type ExprVisitor interface {
 	visitBinaryExpr(*ExprBinary) (any, error)
 	visitFunctionExpr(*ExprFunction) (any, error)
 	visitCallExpr(*ExprCall) (any, error)
+	visitGetExpr(*ExprGet) (any, error)
 	visitTernaryExpr(*ExprTernary) (any, error)
 	visitGroupingExpr(*ExprGrouping) (any, error)
 	visitLiteralExpr(*ExprLiteral) (any, error)
+	visitSetExpr(*ExprSet) (any, error)
+	visitThisExpr(*ExprThis) (any, error)
 	visitUnaryExpr(*ExprUnary) (any, error)
 	visitVariableExpr(*ExprVariable) (any, error)
 	visitAssignExpr(*ExprAssign) (any, error)
@@ -89,6 +92,23 @@ func (expr *ExprCall) accept(v ExprVisitor) (any, error) {
 	return v.visitCallExpr(expr)
 }
 
+// Get     : Expr object, Token name
+type ExprGet struct {
+	object Expr
+	name   *Token
+}
+
+func NewExprGet(object Expr, name *Token) *ExprGet {
+	return &ExprGet{
+		object: object,
+		name:   name,
+	}
+}
+
+func (expr *ExprGet) accept(v ExprVisitor) (any, error) {
+	return v.visitGetExpr(expr)
+}
+
 // Ternary   : Expr condition, Token operator, Expr left, Expr right
 type ExprTernary struct {
 	operator  *Token
@@ -154,6 +174,40 @@ func NewExprLogical(left Expr, operator *Token, right Expr) *ExprLogical {
 
 func (expr *ExprLogical) accept(v ExprVisitor) (any, error) {
 	return v.visitLogicalExpr(expr)
+}
+
+// Set    : Expr object, Token name, Expr value
+type ExprSet struct {
+	object Expr
+	name   *Token
+	value  Expr
+}
+
+func NewExprSet(object Expr, name *Token, value Expr) *ExprSet {
+	return &ExprSet{
+		object: object,
+		name:   name,
+		value:  value,
+	}
+}
+
+func (expr *ExprSet) accept(v ExprVisitor) (any, error) {
+	return v.visitSetExpr(expr)
+}
+
+// This    : Token keyword
+type ExprThis struct {
+	keyword *Token
+}
+
+func NewExprThis(keyword *Token) *ExprThis {
+	return &ExprThis{
+		keyword: keyword,
+	}
+}
+
+func (expr *ExprThis) accept(v ExprVisitor) (any, error) {
+	return v.visitThisExpr(expr)
 }
 
 // Unary    : Token operator, Expr right

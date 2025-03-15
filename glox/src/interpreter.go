@@ -76,6 +76,35 @@ func (interpreter *Interpreter) visitBlockStmt(stmt *StmtBlock) error {
 	return interpreter.executeBlock(stmt.block, NewEnvironment().WithEnclosing(interpreter.enviroment))
 }
 
+func (interpreter *Interpreter) visitClassStmt(stmt *StmtClass) error {
+	if interpreter.enviroment.enclosing == nil {
+		interpreter.globals[stmt.name.Lexeme] = nil
+	} else {
+		interpreter.enviroment.define(nil)
+	}
+
+	methods := map[string]*Function{}
+	for _, method := range stmt.methods {
+		isInitializer := false
+		if method.name.Lexeme == "init" {
+			isInitializer = true
+		}
+		methods[method.name.Lexeme] = NewFunction(method, interpreter.enviroment, isInitializer)
+	}
+
+	class := NewLoxClass(stmt.name.Lexeme, methods)
+	if interpreter.enviroment.enclosing == nil {
+		interpreter.globals[stmt.name.Lexeme] = class
+	} else {
+		interpreter.enviroment.assignAt(
+			&Position{0, len(interpreter.enviroment.localValues) - 1},
+			class,
+		)
+	}
+
+	return nil
+}
+
 func (interpreter *Interpreter) visitBreakStmt(stmt *StmtBreak) error {
 	return NewBreakShortCircuit()
 }
@@ -141,7 +170,7 @@ func (interpreter *Interpreter) visitExpressionStmt(stmt *StmtExpression) error 
 }
 
 func (interpreter *Interpreter) visitFunctionStmt(stmt *StmtFunction) error {
-	function := NewFunction(stmt, interpreter.enviroment)
+	function := NewFunction(stmt, interpreter.enviroment, false)
 	if interpreter.enviroment.enclosing == nil {
 		interpreter.globals[stmt.name.Lexeme] = function
 	} else {
@@ -284,7 +313,7 @@ func (interpreter *Interpreter) visitBinaryExpr(expr *ExprBinary) (any, error) {
 }
 
 func (interpreter *Interpreter) visitFunctionExpr(expr *ExprFunction) (any, error) {
-	return NewFunction(NewStmtFunction(nil, expr), interpreter.enviroment), nil
+	return NewFunction(NewStmtFunction(nil, expr), interpreter.enviroment, false), nil
 }
 
 func (interpreter *Interpreter) visitCallExpr(expr *ExprCall) (any, error) {
@@ -317,6 +346,19 @@ func (interpreter *Interpreter) visitCallExpr(expr *ExprCall) (any, error) {
 	}
 
 	return result, nil
+}
+
+func (interpreter *Interpreter) visitGetExpr(expr *ExprGet) (any, error) {
+	object, err := interpreter.evaluate(expr.object)
+	if err != nil {
+		return nil, err
+	}
+
+	if instance, ok := object.(*LoxInstance); ok {
+		return instance.Get(expr.name)
+	}
+
+	return nil, NewRuntimeError(expr.name, "Only instances have properties.")
 }
 
 func (interpreter *Interpreter) visitTernaryExpr(expr *ExprTernary) (any, error) {
@@ -368,6 +410,29 @@ func (interpreter *Interpreter) visitLiteralExpr(expr *ExprLiteral) (any, error)
 	return expr.value, nil
 }
 
+func (interpreter *Interpreter) visitSetExpr(expr *ExprSet) (any, error) {
+	object, err := interpreter.evaluate(expr.object)
+	if err != nil {
+		return nil, err
+	}
+
+	if _, ok := object.(*LoxInstance); !ok {
+		return nil, NewRuntimeError(expr.name, "Only instances have fields.")
+	}
+
+	value, err := interpreter.evaluate(expr.value)
+	if err != nil {
+		return nil, err
+	}
+	object.(*LoxInstance).Set(expr.name, value)
+
+	return value, nil
+}
+
+func (interpreter *Interpreter) visitThisExpr(expr *ExprThis) (any, error) {
+	return interpreter.lookUpVariable(expr.keyword, expr)
+}
+
 func (interpreter *Interpreter) visitUnaryExpr(expr *ExprUnary) (any, error) {
 	right, err := interpreter.evaluate(expr.right)
 	if err != nil {
@@ -393,7 +458,7 @@ func (interpreter *Interpreter) visitVariableExpr(expr *ExprVariable) (any, erro
 
 func (interpreter *Interpreter) lookUpVariable(name *Token, expr Expr) (any, error) {
 	if position, ok := interpreter.locals[expr]; ok {
-		return interpreter.enviroment.getAt(position)
+		return interpreter.enviroment.getAt(position), nil
 	}
 
 	value, ok := interpreter.globals[name.Lexeme]

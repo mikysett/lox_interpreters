@@ -5,12 +5,13 @@ import (
 )
 
 // program        → declaration* EOF ;
-// declaration    → funDecl
+// declaration    → classDecl
+//                | funDecl
 //                | varDecl
 //                | statement ;
+// classDecl      → "class" IDENTIFIER "{" function* "}" ;
 // funDecl        → "fun" function ;
-// function       → IDENTIFIER functionParts ;
-// functionParts  → "(" parameters? ")" block ;
+// function       → IDENTIFIER "(" parameters? ")" block ;
 // parameters     → IDENTIFIER ( "," IDENTIFIER )* ;
 // varDecl        → "var" IDENTIFIER ( "=" commaOperator )? ";" ;
 // statement      → exprStmt
@@ -34,7 +35,7 @@ import (
 // printStmt      → "print" commaOperator ";" ;
 // commaOperator → expression ( ( "," ) expression )* ;
 // expression     → assignment ;
-// assignment     → IDENTIFIER "=" assignment
+// assignment     → ( call "." )? IDENTIFIER "=" assignment
 //                | ternary ;
 // ternary        → ( logic_or "?" logic_or ":" )* logic_or ;
 // logic_or       → logic_and ( "or" logic_and )* ;
@@ -44,7 +45,7 @@ import (
 // term           → factor ( ( "-" | "+" ) factor )* ;
 // factor         → unary ( ( "/" | "*" ) unary )* ;
 // unary          → ( "!" | "-" ) unary | call ;
-// call           → primary ( "(" arguments? ")" )* ;
+// call           → primary ( "(" arguments? ")" | "." IDENTIFIER )* ;
 // arguments      → expression ( "," expression )* ;
 // primary        → "true" | "false" | "nil"
 //                | NUMBER | STRING
@@ -115,12 +116,42 @@ func (p *Parser) declaration() (stmt Stmt, err error) {
 		// Consume `Fun` token
 		p.advance()
 		return p.function("function")
+	} else if p.match(Class) {
+		return p.classDeclaration()
 	}
 
 	return p.statement()
 }
 
-func (p *Parser) function(kind string) (stmt Stmt, err error) {
+func (p *Parser) classDeclaration() (Stmt, error) {
+	name, err := p.consume(Identifier, "Expect class name.")
+	if err != nil {
+		return nil, err
+	}
+
+	_, err = p.consume(LeftBrace, "Expect '{' before class body.")
+	if err != nil {
+		return nil, err
+	}
+
+	methods := []*StmtFunction{}
+	for !p.check(RightBrace) && !p.isAtEnd() {
+		method, err := p.function("method")
+		if err != nil {
+			return nil, err
+		}
+
+		methods = append(methods, method)
+	}
+
+	_, err = p.consume(RightBrace, "Expect '}' after class body.")
+	if err != nil {
+		return nil, err
+	}
+	return NewStmtClass(name, methods), nil
+}
+
+func (p *Parser) function(kind string) (stmt *StmtFunction, err error) {
 	name, err := p.consume(Identifier, "Expect "+kind+" name.")
 	if err != nil {
 		return nil, err
@@ -474,10 +505,14 @@ func (p *Parser) assignment() (Expr, error) {
 			return nil, err
 		}
 
-		if _, ok := expr.(*ExprVariable); !ok {
+		switch expr.(type) {
+		case *ExprVariable:
+			return NewExprAssign(expr.(*ExprVariable).name, value), nil
+		case *ExprGet:
+			return NewExprSet(expr.(*ExprGet).object, expr.(*ExprGet).name, value), nil
+		default:
 			return nil, NewParserError(equals, "Invalid assignment target.")
 		}
-		return NewExprAssign(expr.(*ExprVariable).name, value), nil
 	}
 	return expr, nil
 }
@@ -655,6 +690,12 @@ func (p *Parser) call() (Expr, error) {
 			if err != nil {
 				return nil, err
 			}
+		} else if p.match(Dot) {
+			name, err := p.consume(Identifier, "Expect property name after '.'.")
+			if err != nil {
+				return nil, err
+			}
+			expr = NewExprGet(expr, name)
 		} else {
 			break
 		}
@@ -720,6 +761,8 @@ func (p *Parser) primary() (Expr, error) {
 			return nil, err
 		}
 		return NewExprFunction(function.params, function.body), nil
+	} else if p.match(This) {
+		return NewExprThis(p.previous()), nil
 	}
 	return nil, NewParserError(p.peek(), "Expect expression.")
 }
