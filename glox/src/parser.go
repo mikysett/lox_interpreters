@@ -765,7 +765,7 @@ func (p *Parser) primary() (Expr, error) {
 		return NewExprGrouping(expr), nil
 	} else if p.match(Identifier) {
 		return NewExprVariable(p.previous()), nil
-	} else if p.match(Fun) {
+	} else if GlobalConfig.AllowAnonymousFunctions && p.match(Fun) {
 		// return p.functionExpr("function");
 		function, err := p.functionBody("function")
 		if err != nil {

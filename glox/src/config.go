@@ -5,6 +5,7 @@ type Config struct {
 	ForbidUninitializedVariable bool
 	AllowImplicitStringCast     bool
 	AllowStaticMethods          bool
+	AllowAnonymousFunctions     bool
 }
 
 var GlobalConfig = ConfigWithExtras
@@ -14,6 +15,7 @@ var ConfigWithExtras = Config{
 	ForbidUninitializedVariable: true,
 	AllowImplicitStringCast:     true,
 	AllowStaticMethods:          true,
+	AllowAnonymousFunctions:     true,
 }
 
 var BasicConfig = Config{}
