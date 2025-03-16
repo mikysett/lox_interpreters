@@ -138,7 +138,6 @@ func (p *Parser) classDeclaration() (Stmt, error) {
 
 	methods := []*StmtFunction{}
 	staticMethods := []*StmtFunction{}
-	getters := []*StmtFunction{}
 	for !p.check(RightBrace) && !p.isAtEnd() {
 		isStaticMethod := false
 		if p.match(Class) {
@@ -155,9 +154,7 @@ func (p *Parser) classDeclaration() (Stmt, error) {
 			return nil, err
 		}
 
-		if kind == "getter" {
-			getters = append(getters, method)
-		} else if isStaticMethod {
+		if isStaticMethod {
 			staticMethods = append(staticMethods, method)
 		} else {
 			methods = append(methods, method)
@@ -168,7 +165,7 @@ func (p *Parser) classDeclaration() (Stmt, error) {
 	if err != nil {
 		return nil, err
 	}
-	return NewStmtClass(name, methods, staticMethods, getters), nil
+	return NewStmtClass(name, methods, staticMethods), nil
 }
 
 func (p *Parser) function(kind string) (stmt *StmtFunction, err error) {
@@ -192,6 +189,8 @@ func (p *Parser) functionBody(kind string) (functionExpr *ExprFunction, err erro
 		if err != nil {
 			return nil, err
 		}
+	} else {
+		parameters = nil
 	}
 
 	_, err = p.consume(LeftBrace, "Expect '{' before "+kind+" body.")
@@ -213,6 +212,7 @@ func (p *Parser) functionParameters(kind string) (parameters []*Token, err error
 		return nil, err
 	}
 
+	parameters = []*Token{}
 	for !p.check(RightParen) {
 		if len(parameters) >= 255 {
 			// Error here is just shown but doesn't stop parser execution as the parser is not in panic mode

@@ -53,6 +53,10 @@ func (f *Function) Bind(instance *LoxInstance) *Function {
 	return NewFunction(f.declaration, env, f.isInitializer)
 }
 
+func (f *Function) IsGetter() bool {
+	return f.declaration.function.params == nil
+}
+
 func (f *Function) String() string {
 	if f.declaration.name == nil {
 		return "<fn>"

@@ -130,12 +130,7 @@ func (resolver *Resolver) visitClassStmt(stmt *StmtClass) error {
 		resolver.resolveFunction(staticMethod.function, FunctionTypeMethod)
 	}
 
-	for _, getter := range stmt.getters {
-		resolver.resolveFunction(getter.function, FunctionTypeMethod)
-	}
-
 	resolver.endScope()
-
 	resolver.currentClass = enclosingClass
 	return nil
 }

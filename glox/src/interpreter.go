@@ -92,11 +92,6 @@ func (interpreter *Interpreter) visitClassStmt(stmt *StmtClass) error {
 		methods[method.name.Lexeme] = NewFunction(method, interpreter.enviroment, isInitializer)
 	}
 
-	getters := map[string]*Function{}
-	for _, getter := range stmt.getters {
-		getters[getter.name.Lexeme] = NewFunction(getter, interpreter.enviroment, false)
-	}
-
 	staticMethods := map[string]*Function{}
 	for _, staticMethod := range stmt.staticMethods {
 		staticMethods[staticMethod.name.Lexeme] = NewFunction(staticMethod, interpreter.enviroment, false)
@@ -104,10 +99,9 @@ func (interpreter *Interpreter) visitClassStmt(stmt *StmtClass) error {
 
 	class := NewLoxClass(
 		// metaclass in order to have static methods on class objects [extra feature]
-		NewLoxInstance(NewLoxClass(nil, stmt.name.Lexeme, staticMethods, nil)),
+		NewLoxInstance(NewLoxClass(nil, stmt.name.Lexeme, staticMethods)),
 		stmt.name.Lexeme,
 		methods,
-		getters,
 	)
 
 	if interpreter.enviroment.enclosing == nil {
@@ -376,8 +370,8 @@ func (interpreter *Interpreter) visitGetExpr(expr *ExprGet) (any, error) {
 		if err != nil {
 			return nil, err
 		}
-		// Getters are called directly without `()`
-		if instance.class.FindGetter(expr.name.Lexeme) != nil {
+
+		if isOfType[*Function](method) && method.(*Function).IsGetter() {
 			return method.(*Function).call(interpreter, nil)
 		}
 		return method, nil
@@ -457,16 +451,10 @@ func (interpreter *Interpreter) visitSetExpr(expr *ExprSet) (any, error) {
 		return nil, err
 	}
 	if obj, ok := object.(*LoxInstance); ok {
-		err := obj.Set(expr.name, value)
-		if err != nil {
-			return nil, err
-		}
+		obj.Set(expr.name, value)
 	}
 	if obj, ok := object.(*LoxClass); ok {
-		err := obj.metaclass.Set(expr.name, value)
-		if err != nil {
-			return nil, err
-		}
+		obj.metaclass.Set(expr.name, value)
 	}
 
 	return value, nil
