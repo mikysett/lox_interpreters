@@ -10,9 +10,10 @@ import (
 //                | funDecl
 //                | varDecl
 //                | statement ;
-// classDecl      → "class" IDENTIFIER "{" function* "}" ;
+// classDecl      → "class" IDENTIFIER "{" ( function | getter )* "}" ;
 // funDecl        → "fun" function ;
 // function       → IDENTIFIER "(" parameters? ")" block ;
+// getter         → IDENTIFIER block ;
 // parameters     → IDENTIFIER ( "," IDENTIFIER )* ;
 // varDecl        → "var" IDENTIFIER ( "=" commaOperator )? ";" ;
 // statement      → exprStmt
@@ -137,18 +138,26 @@ func (p *Parser) classDeclaration() (Stmt, error) {
 
 	methods := []*StmtFunction{}
 	staticMethods := []*StmtFunction{}
+	getters := []*StmtFunction{}
 	for !p.check(RightBrace) && !p.isAtEnd() {
 		isStaticMethod := false
 		if p.match(Class) {
 			isStaticMethod = true
 		}
 
-		method, err := p.function("method")
+		kind := "method"
+		if GlobalConfig.AllowGettersInClasses && !isStaticMethod && p.checkNext(LeftBrace) {
+			kind = "getter"
+		}
+
+		method, err := p.function(kind)
 		if err != nil {
 			return nil, err
 		}
 
-		if isStaticMethod {
+		if kind == "getter" {
+			getters = append(getters, method)
+		} else if isStaticMethod {
 			staticMethods = append(staticMethods, method)
 		} else {
 			methods = append(methods, method)
@@ -159,7 +168,7 @@ func (p *Parser) classDeclaration() (Stmt, error) {
 	if err != nil {
 		return nil, err
 	}
-	return NewStmtClass(name, methods, staticMethods), nil
+	return NewStmtClass(name, methods, staticMethods, getters), nil
 }
 
 func (p *Parser) function(kind string) (stmt *StmtFunction, err error) {
@@ -177,12 +186,33 @@ func (p *Parser) function(kind string) (stmt *StmtFunction, err error) {
 }
 
 func (p *Parser) functionBody(kind string) (functionExpr *ExprFunction, err error) {
+	var parameters []*Token
+	if kind != "getter" {
+		parameters, err = p.functionParameters(kind)
+		if err != nil {
+			return nil, err
+		}
+	}
+
+	_, err = p.consume(LeftBrace, "Expect '{' before "+kind+" body.")
+	if err != nil {
+		return nil, err
+	}
+
+	body, err := p.block()
+	if err != nil {
+		return nil, err
+	}
+
+	return NewExprFunction(parameters, body), nil
+}
+
+func (p *Parser) functionParameters(kind string) (parameters []*Token, err error) {
 	_, err = p.consume(LeftParen, "Expect '(' after "+kind+" name.")
 	if err != nil {
 		return nil, err
 	}
 
-	parameters := []*Token{}
 	for !p.check(RightParen) {
 		if len(parameters) >= 255 {
 			// Error here is just shown but doesn't stop parser execution as the parser is not in panic mode
@@ -204,18 +234,7 @@ func (p *Parser) functionBody(kind string) (functionExpr *ExprFunction, err erro
 	if err != nil {
 		return nil, err
 	}
-
-	_, err = p.consume(LeftBrace, "Expect '{' before "+kind+" body.")
-	if err != nil {
-		return nil, err
-	}
-
-	body, err := p.block()
-	if err != nil {
-		return nil, err
-	}
-
-	return NewExprFunction(parameters, body), nil
+	return parameters, nil
 }
 
 func (p *Parser) block() (stmts []Stmt, err error) {
@@ -766,7 +785,6 @@ func (p *Parser) primary() (Expr, error) {
 	} else if p.match(Identifier) {
 		return NewExprVariable(p.previous()), nil
 	} else if GlobalConfig.AllowAnonymousFunctions && p.match(Fun) {
-		// return p.functionExpr("function");
 		function, err := p.functionBody("function")
 		if err != nil {
 			return nil, err

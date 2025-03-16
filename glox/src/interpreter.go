@@ -92,6 +92,11 @@ func (interpreter *Interpreter) visitClassStmt(stmt *StmtClass) error {
 		methods[method.name.Lexeme] = NewFunction(method, interpreter.enviroment, isInitializer)
 	}
 
+	getters := map[string]*Function{}
+	for _, getter := range stmt.getters {
+		getters[getter.name.Lexeme] = NewFunction(getter, interpreter.enviroment, false)
+	}
+
 	staticMethods := map[string]*Function{}
 	for _, staticMethod := range stmt.staticMethods {
 		staticMethods[staticMethod.name.Lexeme] = NewFunction(staticMethod, interpreter.enviroment, false)
@@ -99,9 +104,11 @@ func (interpreter *Interpreter) visitClassStmt(stmt *StmtClass) error {
 
 	class := NewLoxClass(
 		// metaclass in order to have static methods on class objects [extra feature]
-		NewLoxInstance(NewLoxClass(nil, stmt.name.Lexeme, staticMethods)),
+		NewLoxInstance(NewLoxClass(nil, stmt.name.Lexeme, staticMethods, nil)),
 		stmt.name.Lexeme,
-		methods)
+		methods,
+		getters,
+	)
 
 	if interpreter.enviroment.enclosing == nil {
 		interpreter.globals[stmt.name.Lexeme] = class
@@ -365,7 +372,15 @@ func (interpreter *Interpreter) visitGetExpr(expr *ExprGet) (any, error) {
 	}
 
 	if instance, ok := object.(*LoxInstance); ok {
-		return instance.Get(expr.name)
+		method, err := instance.Get(expr.name)
+		if err != nil {
+			return nil, err
+		}
+		// Getters are called directly without `()`
+		if instance.class.FindGetter(expr.name.Lexeme) != nil {
+			return method.(*Function).call(interpreter, nil)
+		}
+		return method, nil
 	}
 
 	if GlobalConfig.AllowStaticMethods {
@@ -442,10 +457,16 @@ func (interpreter *Interpreter) visitSetExpr(expr *ExprSet) (any, error) {
 		return nil, err
 	}
 	if obj, ok := object.(*LoxInstance); ok {
-		obj.Set(expr.name, value)
+		err := obj.Set(expr.name, value)
+		if err != nil {
+			return nil, err
+		}
 	}
 	if obj, ok := object.(*LoxClass); ok {
-		obj.metaclass.Set(expr.name, value)
+		err := obj.metaclass.Set(expr.name, value)
+		if err != nil {
+			return nil, err
+		}
 	}
 
 	return value, nil

@@ -32,18 +32,20 @@ func (stmt *StmtBlock) accept(v StmtVisitor) error {
 	return v.visitBlockStmt(stmt)
 }
 
-// Class      : Token name, List<StmtFunction> methods, List<StmtFunction> staticMethods
+// Class      : Token name, List<StmtFunction> methods, List<StmtFunction> staticMethods, List<StmtFunction> getters
 type StmtClass struct {
 	name          *Token
 	methods       []*StmtFunction
 	staticMethods []*StmtFunction
+	getters       []*StmtFunction
 }
 
-func NewStmtClass(name *Token, methods, staticMethods []*StmtFunction) *StmtClass {
+func NewStmtClass(name *Token, methods, staticMethods []*StmtFunction, getters []*StmtFunction) *StmtClass {
 	return &StmtClass{
 		name:          name,
 		methods:       methods,
 		staticMethods: staticMethods,
+		getters:       getters,
 	}
 }
 

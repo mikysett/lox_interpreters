@@ -6,6 +6,7 @@ type Config struct {
 	AllowImplicitStringCast     bool
 	AllowStaticMethods          bool
 	AllowAnonymousFunctions     bool
+	AllowGettersInClasses       bool
 }
 
 var GlobalConfig = ConfigWithExtras
@@ -16,6 +17,7 @@ var ConfigWithExtras = Config{
 	AllowImplicitStringCast:     true,
 	AllowStaticMethods:          true,
 	AllowAnonymousFunctions:     true,
+	AllowGettersInClasses:       true,
 }
 
 var BasicConfig = Config{}
