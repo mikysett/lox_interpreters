@@ -28,6 +28,13 @@ func (env *Environment) assignAt(position *Position, value any) {
 	env.ancestor(position.depth).localValues[position.index] = value
 }
 
+func (env *Environment) assignAtLast(value any) {
+	env.assignAt(
+		&Position{0, len(env.localValues) - 1},
+		value,
+	)
+}
+
 func (env *Environment) getAt(position *Position) any {
 	return env.ancestor(position.depth).localValues[position.index]
 }
