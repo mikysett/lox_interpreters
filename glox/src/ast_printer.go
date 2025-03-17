@@ -73,6 +73,10 @@ func (ast *AstPrinter) visitSetExpr(expr *ExprSet) (any, error) {
 	return ast.parenthesize(expr.name.Lexeme, expr.object, expr.value)
 }
 
+func (ast *AstPrinter) visitSuperExpr(expr *ExprSuper) (any, error) {
+	return "super." + expr.method.Lexeme, nil
+}
+
 func (ast *AstPrinter) visitThisExpr(expr *ExprThis) (any, error) {
 	return "this", nil
 }

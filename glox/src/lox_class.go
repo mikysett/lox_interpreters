@@ -1,16 +1,18 @@
 package main
 
 type LoxClass struct {
-	metaclass *LoxInstance
-	name      string
-	methods   map[string]*Function
+	superclass *LoxClass
+	metaclass  *LoxInstance
+	name       string
+	methods    map[string]*Function
 }
 
-func NewLoxClass(metaclass *LoxInstance, name string, methods map[string]*Function) *LoxClass {
+func NewLoxClass(superclass *LoxClass, metaclass *LoxInstance, name string, methods map[string]*Function) *LoxClass {
 	return &LoxClass{
-		metaclass: metaclass,
-		name:      name,
-		methods:   methods,
+		superclass: superclass,
+		metaclass:  metaclass,
+		name:       name,
+		methods:    methods,
 	}
 }
 
@@ -33,7 +35,13 @@ func (c *LoxClass) call(interpreter *Interpreter, arguments []any) (any, error) 
 }
 
 func (c *LoxClass) FindMethod(name string) *Function {
-	return c.methods[name]
+	if val, ok := c.methods[name]; ok {
+		return val
+	}
+	if c.superclass != nil {
+		return c.superclass.FindMethod(name)
+	}
+	return nil
 }
 
 func (c *LoxClass) String() string {

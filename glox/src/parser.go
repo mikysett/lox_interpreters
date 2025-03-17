@@ -10,7 +10,7 @@ import (
 //                | funDecl
 //                | varDecl
 //                | statement ;
-// classDecl      → "class" IDENTIFIER "{" ( function | getter )* "}" ;
+// classDecl      → "class" IDENTIFIER ( "<" IDENTIFIER )? "{" ( function | getter )* "}" ;
 // funDecl        → "fun" function ;
 // function       → IDENTIFIER "(" parameters? ")" block ;
 // getter         → IDENTIFIER block ;
@@ -53,7 +53,8 @@ import (
 //                | NUMBER | STRING
 //                | "(" expression ")"
 //                | functionExpr
-//                | IDENTIFIER ;
+//                | IDENTIFIER
+//                | "super" "." IDENTIFIER ;
 // functionExpr   → "fun" "(" parameters? ")" block ;
 
 type ParseError struct {
@@ -131,6 +132,15 @@ func (p *Parser) classDeclaration() (Stmt, error) {
 		return nil, err
 	}
 
+	var superclass *ExprVariable
+	if p.match(Less) {
+		name, err := p.consume(Identifier, "Expect superclass name.")
+		if err != nil {
+			return nil, err
+		}
+		superclass = NewExprVariable(name)
+	}
+
 	_, err = p.consume(LeftBrace, "Expect '{' before class body.")
 	if err != nil {
 		return nil, err
@@ -165,7 +175,7 @@ func (p *Parser) classDeclaration() (Stmt, error) {
 	if err != nil {
 		return nil, err
 	}
-	return NewStmtClass(name, methods, staticMethods), nil
+	return NewStmtClass(name, superclass, methods, staticMethods), nil
 }
 
 func (p *Parser) function(kind string) (stmt *StmtFunction, err error) {
@@ -792,6 +802,18 @@ func (p *Parser) primary() (Expr, error) {
 		return NewExprFunction(function.params, function.body), nil
 	} else if p.match(This) {
 		return NewExprThis(p.previous()), nil
+	} else if p.match(Super) {
+		keyword := p.previous()
+		_, err := p.consume(Dot, "Expect '.' after 'super'.")
+		if err != nil {
+			return nil, err
+		}
+		method, err := p.consume(Identifier, "Expect superclass method name.")
+		if err != nil {
+			return nil, err
+		}
+
+		return NewExprSuper(keyword, method), nil
 	}
 	return nil, NewParserError(p.peek(), "Expect expression.")
 }

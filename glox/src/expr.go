@@ -13,6 +13,7 @@ type ExprVisitor interface {
 	visitGroupingExpr(*ExprGrouping) (any, error)
 	visitLiteralExpr(*ExprLiteral) (any, error)
 	visitSetExpr(*ExprSet) (any, error)
+	visitSuperExpr(*ExprSuper) (any, error)
 	visitThisExpr(*ExprThis) (any, error)
 	visitUnaryExpr(*ExprUnary) (any, error)
 	visitVariableExpr(*ExprVariable) (any, error)
@@ -195,6 +196,23 @@ func (expr *ExprSet) accept(v ExprVisitor) (any, error) {
 	return v.visitSetExpr(expr)
 }
 
+// Super    : Token keyword, Token method
+type ExprSuper struct {
+	keyword *Token
+	method  *Token
+}
+
+func NewExprSuper(keyword, method *Token) *ExprSuper {
+	return &ExprSuper{
+		keyword: keyword,
+		method:  method,
+	}
+}
+
+func (expr *ExprSuper) accept(v ExprVisitor) (any, error) {
+	return v.visitSuperExpr(expr)
+}
+
 // This    : Token keyword
 type ExprThis struct {
 	keyword *Token
@@ -227,7 +245,7 @@ func (expr *ExprUnary) accept(v ExprVisitor) (any, error) {
 	return v.visitUnaryExpr(expr)
 }
 
-// "Variable : Token name"
+// Variable : Token name
 type ExprVariable struct {
 	name *Token
 }

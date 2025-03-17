@@ -77,10 +77,30 @@ func (interpreter *Interpreter) visitBlockStmt(stmt *StmtBlock) error {
 }
 
 func (interpreter *Interpreter) visitClassStmt(stmt *StmtClass) error {
+	var superclass *LoxClass
+	if stmt.superclass != nil {
+		result, err := interpreter.evaluate(stmt.superclass)
+		if err != nil {
+			return err
+		}
+
+		if super, ok := result.(*LoxClass); ok {
+			superclass = super
+		} else {
+			return NewRuntimeError(stmt.superclass.name, "Superclass must be a class.")
+		}
+	}
+
 	if interpreter.enviroment.enclosing == nil {
 		interpreter.globals[stmt.name.Lexeme] = nil
 	} else {
 		interpreter.enviroment.define(nil)
+	}
+
+	if stmt.superclass != nil {
+		interpreter.enviroment = NewEnvironment().WithEnclosing(interpreter.enviroment)
+		interpreter.enviroment.define("super")
+		interpreter.enviroment.assignAtLast(superclass)
 	}
 
 	methods := map[string]*Function{}
@@ -98,19 +118,21 @@ func (interpreter *Interpreter) visitClassStmt(stmt *StmtClass) error {
 	}
 
 	class := NewLoxClass(
+		superclass,
 		// metaclass in order to have static methods on class objects [extra feature]
-		NewLoxInstance(NewLoxClass(nil, stmt.name.Lexeme, staticMethods)),
+		NewLoxInstance(NewLoxClass(nil, nil, stmt.name.Lexeme, staticMethods)),
 		stmt.name.Lexeme,
 		methods,
 	)
 
+	if stmt.superclass != nil {
+		interpreter.enviroment = interpreter.enviroment.enclosing
+	}
+
 	if interpreter.enviroment.enclosing == nil {
 		interpreter.globals[stmt.name.Lexeme] = class
 	} else {
-		interpreter.enviroment.assignAt(
-			&Position{0, len(interpreter.enviroment.localValues) - 1},
-			class,
-		)
+		interpreter.enviroment.assignAtLast(class)
 	}
 
 	return nil
@@ -458,6 +480,21 @@ func (interpreter *Interpreter) visitSetExpr(expr *ExprSet) (any, error) {
 	}
 
 	return value, nil
+}
+
+func (interpreter *Interpreter) visitSuperExpr(expr *ExprSuper) (any, error) {
+	superPos := interpreter.locals[expr]
+	superclass := interpreter.enviroment.getAt(superPos).(*LoxClass)
+
+	thisPosition := Position{depth: superPos.depth - 1, index: 0}
+	object := interpreter.enviroment.getAt(&thisPosition).(*LoxInstance)
+
+	method := superclass.FindMethod(expr.method.Lexeme)
+	if method == nil {
+		return nil, NewRuntimeError(expr.method, "Undefined property '"+expr.method.Lexeme+"'.")
+	}
+
+	return method.Bind(object), nil
 }
 
 func (interpreter *Interpreter) visitThisExpr(expr *ExprThis) (any, error) {
