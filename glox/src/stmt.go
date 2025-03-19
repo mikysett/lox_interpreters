@@ -15,6 +15,7 @@ type StmtVisitor interface {
 	visitClassStmt(*StmtClass) error
 	visitWhileStmt(*StmtWhile) error
 	visitBreakStmt(*StmtBreak) error
+	visitContinueStmt(*StmtContinue) error
 }
 
 // Block      : List<Stmt> statements
@@ -179,4 +180,15 @@ func NewStmtBreak() *StmtBreak {
 
 func (stmt *StmtBreak) accept(v StmtVisitor) error {
 	return v.visitBreakStmt(stmt)
+}
+
+// Continue      :
+type StmtContinue struct{}
+
+func NewStmtContinue() *StmtContinue {
+	return &StmtContinue{}
+}
+
+func (stmt *StmtContinue) accept(v StmtVisitor) error {
+	return v.visitContinueStmt(stmt)
 }

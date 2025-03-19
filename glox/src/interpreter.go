@@ -2,6 +2,7 @@ package main
 
 import (
 	"fmt"
+	"math"
 	"time"
 )
 
@@ -142,6 +143,10 @@ func (interpreter *Interpreter) visitBreakStmt(stmt *StmtBreak) error {
 	return NewBreakShortCircuit()
 }
 
+func (interpreter *Interpreter) visitContinueStmt(stmt *StmtContinue) error {
+	return NewContinueShortCircuit()
+}
+
 func (interpreter *Interpreter) executeBlock(stmts []Stmt, env *Environment) error {
 	enclosingEnv := interpreter.enviroment
 	interpreter.enviroment = env
@@ -235,8 +240,11 @@ func (interpreter *Interpreter) visitWhileStmt(stmt *StmtWhile) (err error) {
 
 		err = interpreter.execute(stmt.body)
 		if err != nil {
-			if _, ok := err.(*BreakShortCircuit); ok {
+			switch err.(type) {
+			case *BreakShortCircuit:
 				return nil
+			case *ContinueShortCircuit:
+				continue
 			}
 			return err
 		}
@@ -325,6 +333,12 @@ func (interpreter *Interpreter) visitBinaryExpr(expr *ExprBinary) (any, error) {
 			return nil, err
 		}
 		return left.(float64) * right.(float64), nil
+	case Percent:
+		err := checkNumberOperands(expr.operator, left, right)
+		if err != nil {
+			return nil, err
+		}
+		return float64(int(math.Round(left.(float64))) % int(math.Round(right.(float64)))), nil
 	case Plus:
 		err := checkNumberOperands(expr.operator, left, right)
 		if err == nil {

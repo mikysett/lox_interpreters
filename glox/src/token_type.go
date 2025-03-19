@@ -18,6 +18,7 @@ const (
 	Star                // Char: '*'
 	QuestionMark        // Char: '?'
 	Colon               // Char: ':'
+	Percent             // Char: '%'
 
 	// One or two character tokens.
 
@@ -38,23 +39,24 @@ const (
 
 	// Keywords.
 
-	And    // Char: 'and'
-	Class  // Char: 'class'
-	Else   // Char: 'else'
-	False  // Char: 'false'
-	Fun    // Char: 'fun'
-	For    // Char: 'for'
-	If     // Char: 'if'
-	Nil    // Char: 'nil'
-	Or     // Char: 'or'
-	Print  // Char: 'print'
-	Return // Char: 'return'
-	Super  // Char: 'super'
-	This   // Char: 'this'
-	True   // Char: 'true'
-	Var    // Char: 'var'
-	While  // Char: 'while'
-	Break  // Char: 'break'
+	And      // Char: 'and'
+	Class    // Char: 'class'
+	Else     // Char: 'else'
+	False    // Char: 'false'
+	Fun      // Char: 'fun'
+	For      // Char: 'for'
+	If       // Char: 'if'
+	Nil      // Char: 'nil'
+	Or       // Char: 'or'
+	Print    // Char: 'print'
+	Return   // Char: 'return'
+	Super    // Char: 'super'
+	This     // Char: 'this'
+	True     // Char: 'true'
+	Var      // Char: 'var'
+	While    // Char: 'while'
+	Break    // Char: 'break'
+	Continue // Char: 'continue'
 
 	EOF
 )

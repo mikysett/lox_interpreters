@@ -14,7 +14,7 @@ type Scanner struct {
 	line     int
 }
 
-var keywords = map[string]TokenType{
+var defaultKeywords = map[string]TokenType{
 	"and":    And,
 	"class":  Class,
 	"else":   Else,
@@ -32,11 +32,18 @@ var keywords = map[string]TokenType{
 	"var":    Var,
 	"while":  While,
 	"break":  Break,
-	"?":      QuestionMark,
-	":":      Colon,
 }
 
 func NewScanner(source string) Scanner {
+	keywords := defaultKeywords
+	if GlobalConfig.AllowContinueKeyword {
+		keywords["continue"] = Continue
+	}
+	if GlobalConfig.AllowTernaryOperator {
+		keywords["?"] = QuestionMark
+		keywords[":"] = Colon
+	}
+
 	return Scanner{
 		Source:   source,
 		Tokens:   []*Token{},
@@ -140,6 +147,8 @@ func (scanner *Scanner) scanToken() (err error) {
 			err = scanner.numberLiteral()
 		} else if IsAlpha(c) {
 			err = scanner.identifier()
+		} else if c == '%' && GlobalConfig.AllowModuloOperator {
+			scanner.addToken(Percent)
 		} else {
 			report(scanner.line, "", "Unexpected character.")
 		}

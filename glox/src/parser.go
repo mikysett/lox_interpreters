@@ -72,7 +72,7 @@ func (e *ParseError) Error() string {
 type Parser struct {
 	tokens           []*Token
 	current          int
-	acceptBreakCount int
+	nestedLoopsCount int
 }
 
 func NewParser(tokens []*Token) *Parser {
@@ -286,24 +286,20 @@ func (p *Parser) varDeclaration() (stmt Stmt, err error) {
 func (p *Parser) statement() (Stmt, error) {
 	if p.match(If) {
 		return p.ifStatement()
-	}
-	if p.match(While) {
+	} else if p.match(While) {
 		return p.whileStatement()
-	}
-	if p.match(For) {
+	} else if p.match(For) {
 		return p.forStatement()
-	}
-	if p.match(Print) {
+	} else if p.match(Print) {
 		return p.printStatement()
-	}
-	if p.match(Return) {
+	} else if p.match(Return) {
 		return p.returnStatement()
-	}
-	if p.match(LeftBrace) {
+	} else if p.match(LeftBrace) {
 		return p.blockStatement()
-	}
-	if p.match(Break) {
+	} else if p.match(Break) {
 		return p.breakStatement()
+	} else if p.match(Continue) {
+		return p.continueStatement()
 	}
 	return p.expressionStatement()
 }
@@ -349,9 +345,9 @@ func (p *Parser) whileStatement() (Stmt, error) {
 		return nil, err
 	}
 
-	p.acceptBreakCount += 1
+	p.nestedLoopsCount += 1
 	defer func() {
-		p.acceptBreakCount -= 1
+		p.nestedLoopsCount -= 1
 	}()
 
 	body, err := p.statement()
@@ -405,9 +401,9 @@ func (p *Parser) forStatement() (Stmt, error) {
 		return nil, err
 	}
 
-	p.acceptBreakCount += 1
+	p.nestedLoopsCount += 1
 	defer func() {
-		p.acceptBreakCount -= 1
+		p.nestedLoopsCount -= 1
 	}()
 
 	body, err := p.statement()
@@ -448,15 +444,28 @@ func (p *Parser) blockStatement() (Stmt, error) {
 
 func (p *Parser) breakStatement() (Stmt, error) {
 	breakToken := p.previous()
-	_, err := p.consume(Semicolon, "Expect ';' after break.")
+	_, err := p.consume(Semicolon, "Expect ';' after 'break'.")
 	if err != nil {
 		return nil, err
 	}
 
-	if p.acceptBreakCount <= 0 {
+	if p.nestedLoopsCount <= 0 {
 		return nil, NewParserError(breakToken, "Only valid in 'while' and 'for' loops.")
 	}
 	return NewStmtBreak(), nil
+}
+
+func (p *Parser) continueStatement() (Stmt, error) {
+	continueToken := p.previous()
+	_, err := p.consume(Semicolon, "Expect ';' after 'continue'.")
+	if err != nil {
+		return nil, err
+	}
+
+	if p.nestedLoopsCount <= 0 {
+		return nil, NewParserError(continueToken, "Only valid in 'while' and 'for' loops.")
+	}
+	return NewStmtContinue(), nil
 }
 
 func (p *Parser) printStatement() (Stmt, error) {
@@ -695,7 +704,7 @@ func (p *Parser) factor() (expr Expr, firstErr error) {
 		return nil, err
 	}
 
-	for p.match(Slash, Star) {
+	for p.match(Slash, Star, Percent) {
 		operator := p.previous()
 		right, err := p.unary()
 		if err != nil {

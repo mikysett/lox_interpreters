@@ -197,6 +197,10 @@ func (resolver *Resolver) visitBreakStmt(stmt *StmtBreak) error {
 	return nil
 }
 
+func (resolver *Resolver) visitContinueStmt(stmt *StmtContinue) error {
+	return nil
+}
+
 func (resolver *Resolver) visitVarStmt(stmt *StmtVar) (err error) {
 	resolver.declare(stmt.name)
 	if stmt.initializer != nil {

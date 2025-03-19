@@ -7,6 +7,9 @@ type Config struct {
 	AllowStaticMethods          bool
 	AllowAnonymousFunctions     bool
 	AllowGettersInClasses       bool
+	AllowContinueKeyword        bool
+	AllowTernaryOperator        bool
+	AllowModuloOperator         bool
 }
 
 var GlobalConfig = ConfigWithExtras
@@ -18,6 +21,9 @@ var ConfigWithExtras = Config{
 	AllowStaticMethods:          true,
 	AllowAnonymousFunctions:     true,
 	AllowGettersInClasses:       true,
+	AllowContinueKeyword:        true,
+	AllowTernaryOperator:        true,
+	AllowModuloOperator:         true,
 }
 
 var BasicConfig = Config{}
