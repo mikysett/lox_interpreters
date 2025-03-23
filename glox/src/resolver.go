@@ -270,6 +270,12 @@ func (resolver *Resolver) visitFunctionExpr(expr *ExprFunction) (any, error) {
 	return nil, nil
 }
 
+func (resolver *Resolver) visitArrayExpr(expr *ExprArray) (any, error) {
+	resolver.resolveExpr(expr.array)
+	resolver.resolveExpr(expr.index)
+	return nil, nil
+}
+
 func (resolver *Resolver) visitCallExpr(expr *ExprCall) (any, error) {
 	resolver.resolveExpr(expr.callee)
 
@@ -309,6 +315,20 @@ func (resolver *Resolver) visitLiteralExpr(expr *ExprLiteral) (any, error) {
 func (resolver *Resolver) visitSetExpr(expr *ExprSet) (any, error) {
 	resolver.resolveExpr(expr.value)
 	resolver.resolveExpr(expr.object)
+	return nil, nil
+}
+
+func (resolver *Resolver) visitSetArrayExpr(expr *ExprSetArray) (any, error) {
+	resolver.resolveExpr(expr.value)
+	resolver.resolveExpr(expr.object)
+	resolver.resolveExpr(expr.index)
+	return nil, nil
+}
+
+func (resolver *Resolver) visitArrayInstanceExpr(expr *ExprArrayInstance) (any, error) {
+	for _, arg := range expr.arguments {
+		resolver.resolveExpr(arg)
+	}
 	return nil, nil
 }
 

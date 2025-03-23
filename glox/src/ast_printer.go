@@ -29,6 +29,10 @@ func (ast *AstPrinter) visitFunctionExpr(expr *ExprFunction) (any, error) {
 	panic("not implemented")
 }
 
+func (ast *AstPrinter) visitArrayExpr(expr *ExprArray) (any, error) {
+	return ast.parenthesize("[]", expr.array, expr.index)
+}
+
 func (ast *AstPrinter) visitCallExpr(expr *ExprCall) (any, error) {
 	astResult, _ := expr.accept(ast)
 	fnName, ok := astResult.(string)
@@ -71,6 +75,14 @@ func (ast *AstPrinter) visitLiteralExpr(expr *ExprLiteral) (any, error) {
 
 func (ast *AstPrinter) visitSetExpr(expr *ExprSet) (any, error) {
 	return ast.parenthesize(expr.name.Lexeme, expr.object, expr.value)
+}
+
+func (ast *AstPrinter) visitSetArrayExpr(expr *ExprSetArray) (any, error) {
+	return ast.parenthesize("[] =", expr.object, expr.index, expr.value)
+}
+
+func (ast *AstPrinter) visitArrayInstanceExpr(expr *ExprArrayInstance) (any, error) {
+	return ast.parenthesize("[] ", expr.arguments...)
 }
 
 func (ast *AstPrinter) visitSuperExpr(expr *ExprSuper) (any, error) {

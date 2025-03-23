@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"math"
+	"strconv"
 	"time"
 )
 
@@ -39,6 +40,23 @@ func NewInterpreter() *Interpreter {
 			func() int { return 0 },
 			func(interpreter *Interpreter, arguments []any) (any, error) {
 				return float64(time.Now().Unix()), nil
+			},
+			func() string { return "<native fn>" },
+		),
+		"len": NewProtoCallable(
+			func() int { return 1 },
+			func(interpreter *Interpreter, arguments []any) (any, error) {
+				val := arguments[0]
+				switch val.(type) {
+				case *LoxInstance:
+					return float64(len(val.(*LoxInstance).fields)), nil
+				case []byte:
+					return float64(len(val.([]byte))), nil
+				default:
+					// TODO: improve error message
+					dummyToken := NewToken(Identifier, "[PARAMETER]", nil, 0)
+					return nil, NewRuntimeError(&dummyToken, "Function call 'len' only valid on object instances, arrays and strings.")
+				}
 			},
 			func() string { return "<native fn>" },
 		),
@@ -258,7 +276,7 @@ func (interpreter *Interpreter) visitPrintStmt(stmt *StmtPrint) error {
 		return err
 	}
 
-	fmt.Println(stringify(v))
+	fmt.Println(string(stringify(v)))
 	return nil
 }
 
@@ -340,17 +358,17 @@ func (interpreter *Interpreter) visitBinaryExpr(expr *ExprBinary) (any, error) {
 		}
 		return float64(int(math.Round(left.(float64))) % int(math.Round(right.(float64)))), nil
 	case Plus:
-		err := checkNumberOperands(expr.operator, left, right)
-		if err == nil {
+		if err := checkNumberOperands(expr.operator, left, right); err == nil {
 			return left.(float64) + right.(float64), nil
 		}
-		isLeftString, isRightString := isOfType[string](left), isOfType[string](right)
+		isLeftString, isRightString := isOfType[[]byte](left), isOfType[[]byte](right)
 		if (isLeftString && isRightString) ||
 			(GlobalConfig.AllowImplicitStringCast && (isLeftString || isRightString)) {
-			return stringify(left) + stringify(right), nil
+			return append(stringify(left), stringify(right)...), nil
 		}
-		// This error message is not 100% correct (see case above)
-		// But it needs to be phrased like that to pass the standard tests
+		if GlobalConfig.AllowImplicitStringCast {
+			return nil, NewRuntimeError(expr.operator, "Operands must be numbers and/or strings.")
+		}
 		return nil, NewRuntimeError(expr.operator, "Operands must be two numbers or two strings.")
 	case Comma:
 		return right, nil
@@ -361,6 +379,41 @@ func (interpreter *Interpreter) visitBinaryExpr(expr *ExprBinary) (any, error) {
 
 func (interpreter *Interpreter) visitFunctionExpr(expr *ExprFunction) (any, error) {
 	return NewFunction(NewStmtFunction(nil, expr), interpreter.enviroment, false), nil
+}
+
+func (interpreter *Interpreter) visitArrayExpr(expr *ExprArray) (any, error) {
+	array, err := interpreter.evaluate(expr.array)
+	if err != nil {
+		return nil, err
+	}
+
+	index, err := interpreter.evaluate(expr.index)
+	if err != nil {
+		return nil, err
+	}
+
+	var indexStr string
+	if isOfType[[]byte](index) {
+		indexStr = string(index.([]byte))
+	} else {
+		indexStr = fmt.Sprintf("%v", index)
+	}
+
+	switch array.(type) {
+	case *LoxInstance:
+		if result, ok := array.(*LoxInstance).fields[indexStr]; ok {
+			return result, nil
+		}
+		return nil, NewRuntimeError(expr.bracket, fmt.Sprintf("Undefined index '%s'.", indexStr))
+	case []byte:
+		indexInt, err := getIndexForString(array.([]byte), indexStr)
+		if err != nil {
+			return nil, NewRuntimeError(expr.bracket, err.Error())
+		}
+		return string(array.([]byte)[indexInt]), nil
+	default:
+		return nil, NewRuntimeError(expr.bracket, "Can only access array indexes on class instances and strings.")
+	}
 }
 
 func (interpreter *Interpreter) visitCallExpr(expr *ExprCall) (any, error) {
@@ -488,12 +541,65 @@ func (interpreter *Interpreter) visitSetExpr(expr *ExprSet) (any, error) {
 	}
 	if obj, ok := object.(*LoxInstance); ok {
 		obj.Set(expr.name, value)
-	}
-	if obj, ok := object.(*LoxClass); ok {
+	} else if obj, ok := object.(*LoxClass); ok {
 		obj.metaclass.Set(expr.name, value)
 	}
 
 	return value, nil
+}
+
+func (interpreter *Interpreter) visitSetArrayExpr(expr *ExprSetArray) (any, error) {
+	object, err := interpreter.evaluate(expr.object)
+	if err != nil {
+		return nil, err
+	}
+
+	if !isOfType[*LoxInstance](object) &&
+		!(GlobalConfig.AllowStaticMethods || isOfType[*LoxClass](object)) &&
+		!(GlobalConfig.AllowArrays || isOfType[[]byte](object)) {
+		return nil, NewRuntimeError(expr.name, "Only instances have fields.")
+	}
+
+	index, err := interpreter.evaluate(expr.index)
+	if err != nil {
+		return nil, err
+	}
+	indexStr := fmt.Sprintf("%v", index)
+
+	value, err := interpreter.evaluate(expr.value)
+	if err != nil {
+		return nil, err
+	}
+	if obj, ok := object.(*LoxInstance); ok {
+		obj.fields[indexStr] = value
+	} else if obj, ok := object.(*LoxClass); ok {
+		obj.metaclass.fields[indexStr] = value
+	} else if str, ok := object.([]byte); ok {
+		indexInt, err := getIndexForString(str, indexStr)
+		if err != nil {
+			return nil, NewRuntimeError(expr.name, err.Error())
+		}
+		valueStr := fmt.Sprintf("%v", value)
+		if len(valueStr) != 1 {
+			return nil, NewRuntimeError(expr.name, "Value assigned to a string index must be a single character.")
+		}
+		str[indexInt] = []byte(valueStr)[0]
+		return str, nil
+	}
+
+	return value, nil
+}
+
+func (interpreter *Interpreter) visitArrayInstanceExpr(expr *ExprArrayInstance) (any, error) {
+	array := NewArrayInstance()
+	for i, arg := range expr.arguments {
+		evaluatedArg, err := interpreter.evaluate(arg)
+		if err != nil {
+			return nil, err
+		}
+		array.fields[strconv.Itoa(i)] = evaluatedArg
+	}
+	return array, nil
 }
 
 func (interpreter *Interpreter) visitSuperExpr(expr *ExprSuper) (any, error) {
@@ -588,14 +694,36 @@ func isEqual(left any, right any) bool {
 	if left == nil {
 		return false
 	}
+	if str, ok := left.([]byte); ok {
+		left = string(str)
+	}
+	if str, ok := right.([]byte); ok {
+		right = string(str)
+	}
 	return left == right
 }
 
-func stringify(val any) string {
+func stringify(val any) []byte {
 	if val == nil {
-		return "nil"
+		return []byte("nil")
 	}
-	return fmt.Sprintf("%v", val)
+	if str, ok := val.([]byte); ok {
+		cpy := make([]byte, len(str))
+		copy(cpy, str)
+		return cpy
+	}
+	return fmt.Appendf([]byte{}, "%v", val)
+}
+
+func getIndexForString(s []byte, indexStr string) (int, error) {
+	indexInt, err := strconv.Atoi(indexStr)
+	if err != nil {
+		return 0, fmt.Errorf("Invalid index: %w.", err)
+	}
+	if indexInt < 0 || indexInt >= len(s) {
+		return 0, fmt.Errorf("Index %d of string out of range.", indexInt)
+	}
+	return indexInt, nil
 }
 
 func isOfType[T any](v any) bool {

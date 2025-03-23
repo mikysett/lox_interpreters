@@ -7,12 +7,15 @@ type Expr interface {
 type ExprVisitor interface {
 	visitBinaryExpr(*ExprBinary) (any, error)
 	visitFunctionExpr(*ExprFunction) (any, error)
+	visitArrayExpr(*ExprArray) (any, error)
+	visitArrayInstanceExpr(*ExprArrayInstance) (any, error)
 	visitCallExpr(*ExprCall) (any, error)
 	visitGetExpr(*ExprGet) (any, error)
 	visitTernaryExpr(*ExprTernary) (any, error)
 	visitGroupingExpr(*ExprGrouping) (any, error)
 	visitLiteralExpr(*ExprLiteral) (any, error)
 	visitSetExpr(*ExprSet) (any, error)
+	visitSetArrayExpr(*ExprSetArray) (any, error)
 	visitSuperExpr(*ExprSuper) (any, error)
 	visitThisExpr(*ExprThis) (any, error)
 	visitUnaryExpr(*ExprUnary) (any, error)
@@ -72,6 +75,40 @@ func NewExprFunction(params []*Token, body []Stmt) *ExprFunction {
 
 func (stmt *ExprFunction) accept(v ExprVisitor) (any, error) {
 	return v.visitFunctionExpr(stmt)
+}
+
+// Array     : Expr callee, Token bracket, Expr index
+type ExprArray struct {
+	array   Expr
+	bracket *Token
+	index   Expr
+}
+
+func NewExprArray(callee Expr, bracket *Token, index Expr) *ExprArray {
+	return &ExprArray{
+		array:   callee,
+		bracket: bracket,
+		index:   index,
+	}
+}
+
+func (expr *ExprArray) accept(v ExprVisitor) (any, error) {
+	return v.visitArrayExpr(expr)
+}
+
+// ArrayInstance     :  List<Expr> arguments
+type ExprArrayInstance struct {
+	arguments []Expr
+}
+
+func NewExprArrayInstance(arguments []Expr) *ExprArrayInstance {
+	return &ExprArrayInstance{
+		arguments: arguments,
+	}
+}
+
+func (expr *ExprArrayInstance) accept(v ExprVisitor) (any, error) {
+	return v.visitArrayInstanceExpr(expr)
 }
 
 // Call     : Expr callee, Token paren, List<Expr> arguments
@@ -194,6 +231,27 @@ func NewExprSet(object Expr, name *Token, value Expr) *ExprSet {
 
 func (expr *ExprSet) accept(v ExprVisitor) (any, error) {
 	return v.visitSetExpr(expr)
+}
+
+// SetArray    : Expr object, Expr index, Expr value
+type ExprSetArray struct {
+	name   *Token
+	object Expr
+	index  Expr
+	value  Expr
+}
+
+func NewExprSetArray(name *Token, object Expr, index Expr, value Expr) *ExprSetArray {
+	return &ExprSetArray{
+		name:   name,
+		object: object,
+		index:  index,
+		value:  value,
+	}
+}
+
+func (expr *ExprSetArray) accept(v ExprVisitor) (any, error) {
+	return v.visitSetArrayExpr(expr)
 }
 
 // Super    : Token keyword, Token method

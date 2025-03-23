@@ -35,7 +35,7 @@ import (
 // block          → "{" declaration* "}" ;
 // exprStmt       → commaOperator ";" ;
 // printStmt      → "print" commaOperator ";" ;
-// commaOperator → expression ( ( "," ) expression )* ;
+// commaOperator  → expression ( ( "," ) expression )* ;
 // expression     → assignment ;
 // assignment     → ( call "." )? IDENTIFIER "=" assignment
 //                | ternary ;
@@ -46,13 +46,15 @@ import (
 // comparison     → term ( ( ">" | ">=" | "<" | "<=" ) term )* ;
 // term           → factor ( ( "-" | "+" ) factor )* ;
 // factor         → unary ( ( "/" | "*" ) unary )* ;
-// unary          → ( "!" | "-" ) unary | call ;
+// unary          → ( "!" | "-" ) unary | array ;
+// array          → call ( "[" call "]" )* ;
 // call           → primary ( "(" arguments? ")" | "." IDENTIFIER )* ;
 // arguments      → expression ( "," expression )* ;
 // primary        → "true" | "false" | "nil"
 //                | NUMBER | STRING
 //                | "(" expression ")"
 //                | functionExpr
+//                | "Array" "{" arguments? "}"
 //                | IDENTIFIER
 //                | "super" "." IDENTIFIER ;
 // functionExpr   → "fun" "(" parameters? ")" block ;
@@ -559,6 +561,9 @@ func (p *Parser) assignment() (Expr, error) {
 			return NewExprAssign(expr.(*ExprVariable).name, value), nil
 		case *ExprGet:
 			return NewExprSet(expr.(*ExprGet).object, expr.(*ExprGet).name, value), nil
+		case *ExprArray:
+			// TODO: Pass more relevant token instead of `equals` to improve debugging experience for user
+			return NewExprSetArray(equals, expr.(*ExprArray).array, expr.(*ExprArray).index, value), nil
 		default:
 			return nil, NewParserError(equals, "Invalid assignment target.")
 		}
@@ -724,7 +729,33 @@ func (p *Parser) unary() (Expr, error) {
 		}
 		return NewExprUnary(operator, right), nil
 	}
-	return p.call()
+	return p.array()
+}
+
+func (p *Parser) array() (Expr, error) {
+	expr, err := p.call()
+	if err != nil {
+		return nil, err
+	}
+
+	for {
+		if p.match(LeftBracket) {
+			bracket := p.previous()
+			index, err := p.expression()
+			if err != nil {
+				return nil, err
+			}
+			_, err = p.consume(RightBracket, "Expect ']' after array access.")
+			if err != nil {
+				return nil, err
+			}
+			expr = NewExprArray(expr, bracket, index)
+		} else {
+			break
+		}
+	}
+
+	return expr, nil
 }
 
 func (p *Parser) call() (Expr, error) {
@@ -753,24 +784,12 @@ func (p *Parser) call() (Expr, error) {
 	return expr, nil
 }
 
-func (p *Parser) finishCall(expr Expr) (Expr, error) {
-	arguments := []Expr{}
+func (p *Parser) finishCall(expr Expr) (res Expr, err error) {
+	var arguments []Expr
 	if !p.check(RightParen) {
-		for {
-			if len(arguments) >= 255 {
-				// Error here is just shown but doesn't stop parser execution as the parser is not in panic mode
-				printError(p.peek(), "Can't have more than 255 arguments.")
-			}
-
-			arg, err := p.expression()
-			if err != nil {
-				return nil, err
-			}
-			arguments = append(arguments, arg)
-
-			if !p.match(Comma) {
-				break
-			}
+		arguments, err = p.arguments()
+		if err != nil {
+			return nil, err
 		}
 	}
 
@@ -780,6 +799,27 @@ func (p *Parser) finishCall(expr Expr) (Expr, error) {
 	}
 
 	return NewExprCall(expr, paren, arguments), nil
+}
+
+func (p *Parser) arguments() ([]Expr, error) {
+	arguments := []Expr{}
+	for {
+		if len(arguments) >= 255 {
+			// Error here is just shown but doesn't stop parser execution as the parser is not in panic mode
+			printError(p.peek(), "Can't have more than 255 arguments.")
+		}
+
+		arg, err := p.expression()
+		if err != nil {
+			return nil, err
+		}
+		arguments = append(arguments, arg)
+
+		if !p.match(Comma) {
+			break
+		}
+	}
+	return arguments, nil
 }
 
 func (p *Parser) primary() (Expr, error) {
@@ -823,6 +863,23 @@ func (p *Parser) primary() (Expr, error) {
 		}
 
 		return NewExprSuper(keyword, method), nil
+	} else if p.match(Array) {
+		_, err := p.consume(LeftBrace, "Expect '{' after 'Array'.")
+		if err != nil {
+			return nil, err
+		}
+
+		arguments, err := p.arguments()
+		if err != nil {
+			return nil, err
+		}
+
+		_, err = p.consume(RightBrace, "Expect '}' after 'Array{...'.")
+		if err != nil {
+			return nil, err
+		}
+
+		return NewExprArrayInstance(arguments), nil
 	}
 	return nil, NewParserError(p.peek(), "Expect expression.")
 }
