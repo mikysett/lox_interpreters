@@ -12,6 +12,10 @@ func NewLoxInstance(class *LoxClass) *LoxInstance {
 	}
 }
 
+func NewArrayInstance() *LoxInstance {
+	return NewLoxInstance(NewLoxClass(nil, nil, "Array", map[string]*Function{}))
+}
+
 func (i *LoxInstance) Get(name *Token) (any, error) {
 	if val, ok := i.fields[name.Lexeme]; ok {
 		return val, nil
