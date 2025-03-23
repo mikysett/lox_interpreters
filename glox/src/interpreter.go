@@ -250,7 +250,7 @@ func (interpreter *Interpreter) visitIfStmt(stmt *StmtIf) (err error) {
 	return nil
 }
 
-func (interpreter *Interpreter) visitWhileStmt(stmt *StmtWhile) (err error) {
+func (interpreter *Interpreter) visitLoopStmt(stmt *StmtLoop) (err error) {
 	for eval, err := interpreter.evaluate(stmt.condition); isTruthy(eval); eval, err = interpreter.evaluate(stmt.condition) {
 		if err != nil {
 			return err
@@ -262,9 +262,21 @@ func (interpreter *Interpreter) visitWhileStmt(stmt *StmtWhile) (err error) {
 			case *BreakShortCircuit:
 				return nil
 			case *ContinueShortCircuit:
+				if stmt.increment != nil {
+					_, err = interpreter.evaluate(stmt.increment)
+					if err != nil {
+						return err
+					}
+				}
 				continue
 			}
 			return err
+		}
+		if stmt.increment != nil {
+			_, err = interpreter.evaluate(stmt.increment)
+			if err != nil {
+				return err
+			}
 		}
 	}
 	return nil

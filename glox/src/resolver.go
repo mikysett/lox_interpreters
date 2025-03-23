@@ -236,8 +236,11 @@ func (resolver *Resolver) visitIfStmt(stmt *StmtIf) (err error) {
 	return nil
 }
 
-func (resolver *Resolver) visitWhileStmt(stmt *StmtWhile) (err error) {
+func (resolver *Resolver) visitLoopStmt(stmt *StmtLoop) (err error) {
 	resolver.resolveExpr(stmt.condition)
+	if stmt.increment != nil {
+		resolver.resolveExpr(stmt.increment)
+	}
 	resolver.resolveStmt(stmt.body)
 	return nil
 }

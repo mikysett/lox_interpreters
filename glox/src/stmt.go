@@ -13,7 +13,7 @@ type StmtVisitor interface {
 	visitVarStmt(*StmtVar) error
 	visitBlockStmt(*StmtBlock) error
 	visitClassStmt(*StmtClass) error
-	visitWhileStmt(*StmtWhile) error
+	visitLoopStmt(*StmtLoop) error
 	visitBreakStmt(*StmtBreak) error
 	visitContinueStmt(*StmtContinue) error
 }
@@ -154,21 +154,23 @@ func (stmt *StmtVar) accept(v StmtVisitor) error {
 	return v.visitVarStmt(stmt)
 }
 
-// While      : Expr condition, Stmt body
-type StmtWhile struct {
+// Loop      : Expr condition, Stmt body
+type StmtLoop struct {
 	condition Expr
+	increment Expr
 	body      Stmt
 }
 
-func NewStmtWhile(condition Expr, body Stmt) *StmtWhile {
-	return &StmtWhile{
+func NewStmtLoop(condition, increment Expr, body Stmt) *StmtLoop {
+	return &StmtLoop{
 		condition: condition,
+		increment: increment,
 		body:      body,
 	}
 }
 
-func (stmt *StmtWhile) accept(v StmtVisitor) error {
-	return v.visitWhileStmt(stmt)
+func (stmt *StmtLoop) accept(v StmtVisitor) error {
+	return v.visitLoopStmt(stmt)
 }
 
 // Break      :

@@ -356,7 +356,7 @@ func (p *Parser) whileStatement() (Stmt, error) {
 	if err != nil {
 		return nil, err
 	}
-	return NewStmtWhile(condition, body), nil
+	return NewStmtLoop(condition, nil, body), nil
 }
 
 func (p *Parser) forStatement() (Stmt, error) {
@@ -413,17 +413,10 @@ func (p *Parser) forStatement() (Stmt, error) {
 		return nil, err
 	}
 
-	if increment != nil {
-		body = NewStmtBlock([]Stmt{
-			body,
-			NewStmtExpression(increment),
-		})
-	}
-
 	if condition == nil {
 		condition = NewExprLiteral(true)
 	}
-	body = NewStmtWhile(condition, body)
+	body = NewStmtLoop(condition, increment, body)
 
 	if initializer != nil {
 		body = NewStmtBlock([]Stmt{
@@ -869,9 +862,12 @@ func (p *Parser) primary() (Expr, error) {
 			return nil, err
 		}
 
-		arguments, err := p.arguments()
-		if err != nil {
-			return nil, err
+		var arguments []Expr
+		if !p.check(RightBrace) {
+			arguments, err = p.arguments()
+			if err != nil {
+				return nil, err
+			}
 		}
 
 		_, err = p.consume(RightBrace, "Expect '}' after 'Array{...'.")
