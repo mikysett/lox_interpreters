@@ -10,6 +10,7 @@ type Config struct {
 	AllowContinueKeyword        bool
 	AllowTernaryOperator        bool
 	AllowModuloOperator         bool
+	AllowArrays                 bool
 }
 
 var GlobalConfig = ConfigWithExtras
@@ -24,6 +25,7 @@ var ConfigWithExtras = Config{
 	AllowContinueKeyword:        true,
 	AllowTernaryOperator:        true,
 	AllowModuloOperator:         true,
+	AllowArrays:                 true,
 }
 
 var BasicConfig = Config{}
