@@ -43,6 +43,9 @@ func NewScanner(source string) Scanner {
 		keywords["?"] = QuestionMark
 		keywords[":"] = Colon
 	}
+	if GlobalConfig.AllowArrays {
+		keywords["Array"] = Array
+	}
 
 	return Scanner{
 		Source:   source,
@@ -149,6 +152,10 @@ func (scanner *Scanner) scanToken() (err error) {
 			err = scanner.identifier()
 		} else if c == '%' && GlobalConfig.AllowModuloOperator {
 			scanner.addToken(Percent)
+		} else if c == '[' && GlobalConfig.AllowArrays {
+			scanner.addToken(LeftBracket)
+		} else if c == ']' && GlobalConfig.AllowArrays {
+			scanner.addToken(RightBracket)
 		} else {
 			report(scanner.line, "", "Unexpected character.")
 		}
@@ -207,7 +214,7 @@ func (scanner *Scanner) stringLiteral() error {
 	// Consuming the closing '"'
 	scanner.advance()
 
-	scanner.addTokenWithLiteral(String, scanner.Source[scanner.start+1:scanner.current-1])
+	scanner.addTokenWithLiteral(String, []byte(scanner.Source[scanner.start+1:scanner.current-1]))
 	return nil
 }
 

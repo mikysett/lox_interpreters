@@ -9,6 +9,8 @@ const (
 	RightParen          // Char: ')'
 	LeftBrace           // Char: '{'
 	RightBrace          // Char: '}'
+	LeftBracket         // Char: '['
+	RightBracket        // Char: ']'
 	Comma               // Char: ','
 	Dot                 // Char: '.'
 	Minus               // Char: '-'
@@ -57,6 +59,7 @@ const (
 	While    // Char: 'while'
 	Break    // Char: 'break'
 	Continue // Char: 'continue'
+	Array    // Char: 'Array'
 
 	EOF
 )
@@ -71,6 +74,10 @@ func (t *TokenType) String() string {
 		return "LeftBrace"
 	case RightBrace:
 		return "RightBrace"
+	case LeftBracket:
+		return "LeftBracket"
+	case RightBracket:
+		return "RightBracket"
 	case Comma:
 		return "Comma"
 	case Dot:
