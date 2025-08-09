@@ -2,7 +2,7 @@
 
 Those are my interpreters for `lox`, the language used as an example in the fantastic book [Crafting Interpreters](https://craftinginterpreters.com/).
 
-## glox: The Go interpreter [work in progress]
+## glox: The Go interpreter [DONE]
 
 > In the book this corresponds to `jlox`, a Java interpreter
 
