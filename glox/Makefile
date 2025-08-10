@@ -27,7 +27,7 @@ all:		test build install
 
 clean:
 			$(RM) bin
-			printf "$(WHT)[$(YEL)$(NAME) BINARIES$(WHT)]\n"
+			printf "$(WHT)[$(YEL)REMOVED $(NAME) BINARIES$(WHT)]\n"
 
 test: build
 	printf "$(WHT)[$(RED)TODO$(WHT)]\n"
