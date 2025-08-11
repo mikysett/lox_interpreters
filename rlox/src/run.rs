@@ -1,4 +1,3 @@
-use crate::disassemble_chunk;
 use crate::domain::Chunk;
 use crate::domain::OpCode;
 use crate::domain::Value;
@@ -14,10 +13,9 @@ pub fn run() {
     chunk.write_constant(Value::Double(1.2), 123);
     chunk.write_constant(Value::Double(1.2), 123);
     chunk.write_constant(Value::Double(1.2), 123);
+    chunk.write(OpCode::OpNegate as u8, 123);
     chunk.write(OpCode::OpReturn as u8, 123);
 
-    disassemble_chunk(&chunk, "test chunk");
-
+    vm.interpret(chunk);
     vm.free();
-    chunk.free();
 }

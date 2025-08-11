@@ -40,10 +40,7 @@ pub mod debug {
         let pointer = chunk.code[offset + 1] as usize
             | (chunk.code[offset + 2] as usize) << 8
             | (chunk.code[offset + 3] as usize) << 16;
-        println!(
-            "{name:-16} {:4} '{}'",
-            pointer, chunk.constants[pointer as usize]
-        );
+        println!("{name:-16} {:4} '{}'", pointer, chunk.constants[pointer]);
         offset + 4
     }
 }

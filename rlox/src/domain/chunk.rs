@@ -1,5 +1,3 @@
-use std::u8;
-
 use crate::domain::value::Value;
 
 #[derive(Debug)]
@@ -8,6 +6,7 @@ pub enum OpCode {
     OpReturn = 0,
     OpConstant,
     OpConstantLong,
+    OpNegate,
     Unknown = 0xff,
 }
 
@@ -17,6 +16,7 @@ impl From<u8> for OpCode {
             0 => OpCode::OpReturn,
             1 => OpCode::OpConstant,
             2 => OpCode::OpConstantLong,
+            3 => OpCode::OpNegate,
             _ => OpCode::Unknown,
         }
     }
@@ -54,9 +54,7 @@ impl Chunk {
     pub fn write(&mut self, byte: u8, line: usize) {
         self.code.push(byte);
 
-        if self.lines.is_empty() {
-            self.lines.push(Line::new(self.code.len() - 1, line));
-        } else if line != self.lines.last().unwrap().line_number {
+        if self.lines.is_empty() || line != self.lines.last().unwrap().line_number {
             self.lines.push(Line::new(self.code.len() - 1, line));
         }
     }
@@ -73,11 +71,11 @@ impl Chunk {
     pub fn write_constant(&mut self, value: Value, line: usize) {
         let index = self.add_constant(value);
 
-        if index >= 3 as usize {
+        if index >= u8::MAX as usize {
             self.write(OpCode::OpConstantLong as u8, line);
-            self.write((index & 0xff as usize) as u8, line);
-            self.write(((index >> 8) & 0xff as usize) as u8, line);
-            self.write(((index >> 16) & 0xff as usize) as u8, line);
+            self.write((index & 0xff) as u8, line);
+            self.write(((index >> 8) & 0xff) as u8, line);
+            self.write(((index >> 16) & 0xff) as u8, line);
         } else {
             self.write(OpCode::OpConstant as u8, line);
             self.write(index as u8, line);
