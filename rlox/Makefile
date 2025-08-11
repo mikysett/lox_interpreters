@@ -24,6 +24,9 @@ install:	build
 build:		$(NAME)
 			printf "$(WHT)[$(GRN)$(NAME) PROGRAM COMPILED$(WHT)]\n"
 
+debug:
+	        export RUSTFLAGS="--cfg debug" && cargo run
+
 all:		build install
 
 clean:
