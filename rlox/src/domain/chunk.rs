@@ -3,12 +3,23 @@ use std::u8;
 use crate::domain::value::Value;
 
 #[derive(Debug)]
+#[repr(u8)]
 pub enum OpCode {
-    OpReturn,
+    OpReturn = 0,
     OpConstant,
-    Byte(u8),
     OpConstantLong,
-    FourBytes(u32),
+    Unknown = 0xff,
+}
+
+impl From<u8> for OpCode {
+    fn from(value: u8) -> Self {
+        match value {
+            0 => OpCode::OpReturn,
+            1 => OpCode::OpConstant,
+            2 => OpCode::OpConstantLong,
+            _ => OpCode::Unknown,
+        }
+    }
 }
 
 pub struct Line {
@@ -26,7 +37,7 @@ impl Line {
 }
 
 pub struct Chunk {
-    pub code: Vec<OpCode>,
+    pub code: Vec<u8>,
     pub constants: Vec<Value>,
     pub lines: Vec<Line>,
 }
@@ -40,7 +51,7 @@ impl Chunk {
         }
     }
 
-    pub fn write(&mut self, byte: OpCode, line: usize) {
+    pub fn write(&mut self, byte: u8, line: usize) {
         self.code.push(byte);
 
         if self.lines.is_empty() {
@@ -62,12 +73,14 @@ impl Chunk {
     pub fn write_constant(&mut self, value: Value, line: usize) {
         let index = self.add_constant(value);
 
-        if index >= u8::MAX as usize {
-            self.write(OpCode::OpConstantLong, line);
-            self.write(OpCode::FourBytes(index as u32), line);
+        if index >= 3 as usize {
+            self.write(OpCode::OpConstantLong as u8, line);
+            self.write((index & 0xff as usize) as u8, line);
+            self.write(((index >> 8) & 0xff as usize) as u8, line);
+            self.write(((index >> 16) & 0xff as usize) as u8, line);
         } else {
-            self.write(OpCode::OpConstant, line);
-            self.write(OpCode::Byte(index as u8), line);
+            self.write(OpCode::OpConstant as u8, line);
+            self.write(index as u8, line);
         }
     }
 
@@ -86,6 +99,6 @@ impl Chunk {
                 return self.lines[i].line_number;
             }
         }
-        self.lines.last().map(|line| line.line_number).unwrap_or(0)
+        self.lines.last().map(|line| line.line_number).unwrap()
     }
 }
