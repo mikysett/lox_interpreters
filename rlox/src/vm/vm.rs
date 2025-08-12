@@ -61,10 +61,14 @@ impl VM {
                 OpCode::OpSubtract => binary_op!(self, -),
                 OpCode::OpMultiply => binary_op!(self, *),
                 OpCode::OpDivide => binary_op!(self, /),
-                OpCode::OpNegate => match self.pop().to_owned() {
-                    Value::Double(value) => self.push(Value::Double(-value)),
-                    _ => return InterpretResult::RuntimeError,
-                },
+                OpCode::OpNegate => {
+                    let last = self.stack_top - 1;
+                    if let Value::Double(value) = self.stack[last] {
+                        self.stack[last] = Value::Double(-value);
+                    } else {
+                        return InterpretResult::RuntimeError;
+                    }
+                }
                 OpCode::OpReturn => {
                     println!("{}", self.pop());
                     return InterpretResult::Ok;
