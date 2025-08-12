@@ -6,6 +6,10 @@ pub enum OpCode {
     OpReturn = 0,
     OpConstant,
     OpConstantLong,
+    OpAdd,
+    OpSubtract,
+    OpMultiply,
+    OpDivide,
     OpNegate,
     Unknown = 0xff,
 }
@@ -16,7 +20,11 @@ impl From<u8> for OpCode {
             0 => OpCode::OpReturn,
             1 => OpCode::OpConstant,
             2 => OpCode::OpConstantLong,
-            3 => OpCode::OpNegate,
+            3 => OpCode::OpAdd,
+            4 => OpCode::OpSubtract,
+            5 => OpCode::OpMultiply,
+            6 => OpCode::OpDivide,
+            7 => OpCode::OpNegate,
             _ => OpCode::Unknown,
         }
     }

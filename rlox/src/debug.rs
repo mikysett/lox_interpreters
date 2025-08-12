@@ -17,6 +17,10 @@ pub mod debug {
             OpCode::OpReturn => simple_instruction("OP_RETURN", offset),
             OpCode::OpConstant => constant_instruction("OP_CONSTANT", offset, chunk),
             OpCode::OpConstantLong => constant_long_instruction("OP_CONSTANT_LONG", offset, chunk),
+            OpCode::OpAdd => simple_instruction("OP_ADD", offset),
+            OpCode::OpSubtract => simple_instruction("OP_SUBTRACT", offset),
+            OpCode::OpMultiply => simple_instruction("OP_MULTIPLY", offset),
+            OpCode::OpDivide => simple_instruction("OP_DIVIDE", offset),
             OpCode::OpNegate => simple_instruction("OP_NEGATE", offset),
             OpCode::Unknown => {
                 println!("Unknown opcode {} at offset {}", chunk.code[offset], offset);

@@ -1,3 +1,4 @@
+use crate::binary_op;
 #[cfg(debug)]
 use crate::debug::debug::disassemble_instruction;
 use crate::domain::{Chunk, OpCode, Value};
@@ -56,6 +57,10 @@ impl VM {
                     println!("constant: {}", constant);
                     self.push(constant);
                 }
+                OpCode::OpAdd => binary_op!(self, +),
+                OpCode::OpSubtract => binary_op!(self, -),
+                OpCode::OpMultiply => binary_op!(self, *),
+                OpCode::OpDivide => binary_op!(self, /),
                 OpCode::OpNegate => match self.pop().to_owned() {
                     Value::Double(value) => self.push(Value::Double(-value)),
                     _ => return InterpretResult::RuntimeError,
@@ -105,4 +110,17 @@ impl VM {
         self.stack_top -= 1;
         self.stack[self.stack_top].clone()
     }
+}
+
+#[macro_export]
+macro_rules! binary_op {
+    ($vm:ident, $op:tt) => {{
+        let right = $vm.pop();
+        let left = $vm.pop();
+        if let (Value::Double(right), Value::Double(left)) = (right, left) {
+            $vm.push(Value::Double(left $op right));
+        } else {
+            return InterpretResult::RuntimeError;
+        }
+    }};
 }
