@@ -1,7 +1,5 @@
-use crate::binary_op;
-#[cfg(debug)]
-use crate::debug::debug::disassemble_instruction;
-use crate::domain::{Chunk, OpCode, Value};
+use crate::compile;
+use crate::domain::{Chunk, Value};
 
 const STACK_MAX: usize = 256;
 const VALUE_UNKNOWN: Value = Value::Unknown;
@@ -34,48 +32,11 @@ impl VM {
         self.chunk.free(); // This is implemented in run() after vm.free() by the book
     }
 
-    pub fn interpret(&mut self, chunk: Chunk) -> InterpretResult {
-        self.chunk = chunk;
-        loop {
-            #[cfg(debug)]
-            {
-                print!("          ");
-                for i in 0..self.stack_top {
-                    print!("[ {} ]", self.stack[i]);
-                }
-                println!();
-                disassemble_instruction(&self.chunk, self.ip);
-            }
-            match self.read_byte().into() {
-                OpCode::OpConstant => {
-                    let constant = self.read_constant().clone();
-                    println!("constant: {}", constant);
-                    self.push(constant);
-                }
-                OpCode::OpConstantLong => {
-                    let constant = self.read_constant_long().clone();
-                    println!("constant: {}", constant);
-                    self.push(constant);
-                }
-                OpCode::OpAdd => binary_op!(self, +),
-                OpCode::OpSubtract => binary_op!(self, -),
-                OpCode::OpMultiply => binary_op!(self, *),
-                OpCode::OpDivide => binary_op!(self, /),
-                OpCode::OpNegate => {
-                    let last = self.stack_top - 1;
-                    if let Value::Double(value) = self.stack[last] {
-                        self.stack[last] = Value::Double(-value);
-                    } else {
-                        return InterpretResult::RuntimeError;
-                    }
-                }
-                OpCode::OpReturn => {
-                    println!("{}", self.pop());
-                    return InterpretResult::Ok;
-                }
-                OpCode::Unknown => return InterpretResult::RuntimeError,
-            };
-        }
+    // The lifetime is needed to ensure the [source] won't be freed before the VM consumes it.
+    // By storing [source] in an unsafe ptr the compiler will not understand it needs to stay live without the lifetime.
+    pub fn interpret<'a>(&mut self, source: &'a [u8]) -> InterpretResult {
+        compile(source);
+        InterpretResult::Ok
     }
 
     pub fn read_byte(&mut self) -> u8 {
