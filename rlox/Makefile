@@ -25,7 +25,8 @@ build:		$(NAME)
 			printf "$(WHT)[$(GRN)$(NAME) PROGRAM COMPILED$(WHT)]\n"
 
 debug:
-	        export RUSTFLAGS="--cfg debug" && cargo run
+	        export RUSTFLAGS="--cfg debug" && cargo build
+			cp target/debug/$(NAME) ./bin/$(NAME)
 
 all:		build install
 
