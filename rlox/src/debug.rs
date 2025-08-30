@@ -3,6 +3,15 @@ pub mod debug {
     use crate::domain::Chunk;
     use crate::domain::OpCode;
 
+    pub fn disassemble_chunk(chunk: &Chunk, name: &str) {
+        println!("== {} ==\n", name);
+
+        let mut offset = 0;
+        while offset < chunk.code.len() {
+            offset = disassemble_instruction(chunk, offset);
+        }
+    }
+
     pub fn disassemble_instruction(chunk: &Chunk, offset: usize) -> usize {
         print!("{:04} ", offset);
 

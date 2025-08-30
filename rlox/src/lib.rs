@@ -7,7 +7,8 @@ pub mod vm;
 
 pub use compiler::compile;
 #[cfg(debug)]
-pub use debug::debug::disassemble_instruction;
+pub use debug::debug::disassemble_chunk;
 pub use run::run;
 pub use scanner::Scanner;
+pub use vm::InterpretError;
 pub use vm::VM;
