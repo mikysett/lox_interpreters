@@ -1,4 +1,4 @@
 mod vm;
 
-pub use vm::InterpretResult;
+pub use vm::InterpretError;
 pub use vm::VM;
