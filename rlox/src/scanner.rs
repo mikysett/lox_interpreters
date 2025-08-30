@@ -1,5 +1,3 @@
-use std::marker::PhantomData;
-
 type Line = isize;
 
 #[derive(Debug, Clone, Copy, PartialEq)]
@@ -18,23 +16,24 @@ pub enum TokenType {
     Error, Eof,
 }
 
-pub struct Scanner<'a> {
+pub struct Scanner {
     start: *const u8,
     // `end` is not a valid pointer, used only to check when the string ends (start == end).
     end: *const u8,
     current: *const u8,
     line: Line,
-    phantom: PhantomData<&'a [u8]>,
 }
 
-pub struct Token<'a> {
+#[derive(Debug, Clone, Copy)]
+pub struct Token {
     pub kind: TokenType,
     pub line: Line,
-    pub value: &'a str,
+    pub start: *const u8,
+    pub length: usize,
 }
 
-impl<'a> Scanner<'a> {
-    pub fn new(source: &'a [u8]) -> Self {
+impl Scanner {
+    pub fn new(source: &[u8]) -> Self {
         let start = source.as_ptr();
         let current = start;
         // This is the first position after the end of the string, it should never be dereferenced, used only to check for the end of the string.
@@ -44,7 +43,6 @@ impl<'a> Scanner<'a> {
             current,
             end,
             line: 1,
-            phantom: PhantomData,
         }
     }
 
@@ -236,17 +234,24 @@ impl<'a> Scanner<'a> {
     }
 }
 
-impl<'a> Token<'a> {
-    pub fn new(kind: TokenType, line: Line, value: &'a str) -> Self {
-        Self { kind, line, value }
+impl Token {
+    pub fn new(kind: TokenType, line: Line, value: &str) -> Self {
+        Self {
+            kind,
+            line,
+            start: value.as_ptr(),
+            length: value.len(),
+        }
     }
 
-    pub fn error_token(message: &'a str, line: Line) -> Self {
+    pub fn error_token(message: &str, line: Line) -> Self {
         Self::new(TokenType::Error, line, message)
     }
 
     pub fn as_str(&self) -> &str {
-        self.value
+        unsafe {
+            std::str::from_utf8_unchecked(std::slice::from_raw_parts(self.start, self.length))
+        }
     }
 }
 
