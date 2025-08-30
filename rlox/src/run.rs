@@ -3,8 +3,8 @@ use std::io::stdin;
 use std::io::stdout;
 use std::io::Write;
 
-use crate::vm::InterpretResult;
 use crate::vm::VM;
+use crate::InterpretError;
 
 pub fn run() {
     let args: Vec<String> = env::args().collect();
@@ -23,7 +23,7 @@ pub fn run() {
 }
 
 fn repl(vm: &mut VM) {
-    let mut buf = String::new();
+    let mut buf = String::with_capacity(1024);
 
     loop {
         print!("> ");
@@ -35,7 +35,10 @@ fn repl(vm: &mut VM) {
             eprintln!("error: Failed to read line: {}", err);
             std::process::exit(65);
         });
-        vm.interpret(buf.as_bytes());
+        if let Err(error) = vm.interpret(buf.as_bytes()) {
+            println!(": {:?}", error);
+        }
+        buf.clear();
     }
 }
 
@@ -45,9 +48,10 @@ fn run_file(vm: &mut VM, path: &str) {
         std::process::exit(66);
     });
 
-    match vm.interpret(&source) {
-        InterpretResult::Ok => {}
-        InterpretResult::CompileError => std::process::exit(65),
-        InterpretResult::RuntimeError => std::process::exit(70),
+    if let Err(error) = vm.interpret(&source) {
+        match error {
+            InterpretError::CompileError => std::process::exit(65),
+            InterpretError::RuntimeError => std::process::exit(70),
+        }
     }
 }
