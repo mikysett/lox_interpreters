@@ -140,14 +140,14 @@ impl Compiler {
         Self { parser, chunk }
     }
 
-    pub fn emit_bytes(&mut self, byte1: u8, byte2: u8) {
+    pub fn emit_bytes<T: Into<u8>, U: Into<u8>>(&mut self, byte1: T, byte2: U) {
         self.emit_byte(byte1);
         self.emit_byte(byte2);
     }
 
-    pub fn emit_byte(&mut self, byte: u8) {
+    pub fn emit_byte<T: Into<u8>>(&mut self, byte: T) {
         let line = self.parser.previous.line as usize;
-        self.current_chunk().write(byte, line);
+        self.current_chunk().write(byte.into(), line);
     }
 
     pub fn current_chunk(&mut self) -> &mut Chunk {
@@ -184,7 +184,8 @@ impl Compiler {
 
         self.parse_precedence(Precedence::Unary);
         match operator_type {
-            TokenType::Minus => self.emit_byte(OpCode::OpNegate as u8),
+            TokenType::Minus => self.emit_byte(OpCode::Negate),
+            TokenType::Bang => self.emit_byte(OpCode::Not),
             _ => unreachable!("Operator type can't be anything but Minus for unary expressions."),
         }
     }
@@ -195,12 +196,27 @@ impl Compiler {
 
         self.parse_precedence(Precedence::from_unchecked(rule.precedence as u8 + 1));
         match operator_type {
-        TokenType::Plus => self.emit_byte(OpCode::OpAdd as u8),
-        TokenType::Minus => self.emit_byte(OpCode::OpSubtract as u8),
-        TokenType::Star => self.emit_byte(OpCode::OpMultiply as u8),
-        TokenType::Slash => self.emit_byte(OpCode::OpDivide as u8),
-        _ => unreachable!("Operator type can't be anything but Plus, Minus, Star, or Slash for binary expressions."),
-      }
+            TokenType::BangEqual => self.emit_bytes(OpCode::Equal, OpCode::Not),
+            TokenType::EqualEqual => self.emit_byte(OpCode::Equal),
+            TokenType::Greater => self.emit_byte(OpCode::Greater),
+            TokenType::GreaterEqual => self.emit_bytes(OpCode::Less, OpCode::Not),
+            TokenType::Less => self.emit_byte(OpCode::Less),
+            TokenType::LessEqual => self.emit_bytes(OpCode::Less, OpCode::Not),
+            TokenType::Plus => self.emit_byte(OpCode::Add),
+            TokenType::Minus => self.emit_byte(OpCode::Subtract),
+            TokenType::Star => self.emit_byte(OpCode::Multiply),
+            TokenType::Slash => self.emit_byte(OpCode::Divide),
+            _ => unreachable!("Operator type can't be anything but Plus, Minus, Star, or Slash for binary expressions."),
+        }
+    }
+
+    pub fn literal(&mut self) {
+        match self.parser.previous.kind {
+            TokenType::False => self.emit_byte(OpCode::False),
+            TokenType::True => self.emit_byte(OpCode::True),
+            TokenType::Nil => self.emit_byte(OpCode::Nil),
+            _ => unreachable!("Literal type can't be anything but False, True, or Nil."),
+        }
     }
 
     pub fn parse_precedence(&mut self, precedence: Precedence) {
@@ -229,7 +245,7 @@ impl Compiler {
 
     pub fn emit_constant(&mut self, constant: Value) {
         let constant_index = self.make_constant(constant);
-        self.emit_bytes(OpCode::OpConstant as u8, constant_index);
+        self.emit_bytes(OpCode::Constant, constant_index);
     }
 
     pub fn make_constant(&mut self, constant: Value) -> u8 {
@@ -243,7 +259,7 @@ impl Compiler {
     }
 
     pub fn emit_return(&mut self) {
-        self.emit_byte(OpCode::OpReturn as u8);
+        self.emit_byte(OpCode::Return);
     }
 }
 
@@ -279,31 +295,31 @@ const RULES: [ParserRule; 40] = [
     ParserRule::new(None, None, Precedence::None),                     // TokenType::Semicolon
     ParserRule::new(None, Some(Compiler::binary), Precedence::Factor), // TokenType::Slash
     ParserRule::new(None, Some(Compiler::binary), Precedence::Factor), // TokenType::Star
-    ParserRule::new(None, None, Precedence::None),                     // TokenType::Bang
-    ParserRule::new(None, None, Precedence::None),                     // TokenType::BangEqual
+    ParserRule::new(Some(Compiler::unary), None, Precedence::None),    // TokenType::Bang
+    ParserRule::new(None, Some(Compiler::binary), Precedence::Equality), // TokenType::BangEqual
     ParserRule::new(None, None, Precedence::None),                     // TokenType::Equal
-    ParserRule::new(None, None, Precedence::None),                     // TokenType::EqualEqual
-    ParserRule::new(None, None, Precedence::None),                     // TokenType::Greater
-    ParserRule::new(None, None, Precedence::None),                     // TokenType::GreaterEqual
-    ParserRule::new(None, None, Precedence::None),                     // TokenType::Less
-    ParserRule::new(None, None, Precedence::None),                     // TokenType::LessEqual
+    ParserRule::new(None, Some(Compiler::binary), Precedence::Equality),   // TokenType::EqualEqual
+    ParserRule::new(None, Some(Compiler::binary), Precedence::Comparison), // TokenType::Greater
+    ParserRule::new(None, Some(Compiler::binary), Precedence::Comparison), // TokenType::GreaterEqual
+    ParserRule::new(None, Some(Compiler::binary), Precedence::Comparison), // TokenType::Less
+    ParserRule::new(None, Some(Compiler::binary), Precedence::Comparison), // TokenType::LessEqual
     ParserRule::new(None, None, Precedence::None),                     // TokenType::Identifier
     ParserRule::new(None, None, Precedence::None),                     // TokenType::String
     ParserRule::new(Some(Compiler::number), None, Precedence::None),   // TokenType::Number
     ParserRule::new(None, None, Precedence::None),                     // TokenType::And
     ParserRule::new(None, None, Precedence::None),                     // TokenType::Class
     ParserRule::new(None, None, Precedence::None),                     // TokenType::Else
-    ParserRule::new(None, None, Precedence::None),                     // TokenType::False
+    ParserRule::new(Some(Compiler::literal), None, Precedence::None),  // TokenType::False
     ParserRule::new(None, None, Precedence::None),                     // TokenType::For
     ParserRule::new(None, None, Precedence::None),                     // TokenType::Fun
     ParserRule::new(None, None, Precedence::None),                     // TokenType::If
-    ParserRule::new(None, None, Precedence::None),                     // TokenType::Nil
+    ParserRule::new(Some(Compiler::literal), None, Precedence::None),  // TokenType::Nil
     ParserRule::new(None, None, Precedence::None),                     // TokenType::Or
     ParserRule::new(None, None, Precedence::None),                     // TokenType::Print
     ParserRule::new(None, None, Precedence::None),                     // TokenType::Return
     ParserRule::new(None, None, Precedence::None),                     // TokenType::Super
     ParserRule::new(None, None, Precedence::None),                     // TokenType::This
-    ParserRule::new(None, None, Precedence::None),                     // TokenType::True
+    ParserRule::new(Some(Compiler::literal), None, Precedence::None),  // TokenType::True
     ParserRule::new(None, None, Precedence::None),                     // TokenType::Var
     ParserRule::new(None, None, Precedence::None),                     // TokenType::While
     ParserRule::new(None, None, Precedence::None),                     // TokenType::Error
