@@ -1,6 +1,7 @@
 use crate::binary_op;
 use crate::compile;
 use crate::domain::{Chunk, OpCode, Value};
+use crate::runtime_error;
 
 const STACK_MAX: usize = 256;
 const VALUE_UNKNOWN: Value = Value::Unknown;
@@ -48,29 +49,42 @@ impl VM {
     pub fn run(&mut self) -> Result<(), InterpretError> {
         loop {
             match self.read_byte().into() {
-                OpCode::OpConstant => {
+                OpCode::Constant => {
                     let constant = self.read_constant().clone();
-                    println!("constant: {}", constant);
                     self.push(constant);
                 }
-                OpCode::OpConstantLong => {
+                OpCode::True => self.push(Value::Bool(true)),
+                OpCode::False => self.push(Value::Bool(false)),
+                OpCode::Equal => {
+                    let right = self.pop();
+                    let left = self.pop();
+                    self.push(Value::Bool(left.equal(&right)));
+                }
+                OpCode::Greater => binary_op!(self, Value::Bool, >),
+                OpCode::Less => binary_op!(self, Value::Bool, <),
+                OpCode::Nil => self.push(Value::Nil),
+                OpCode::ConstantLong => {
                     let constant = self.read_constant_long().clone();
-                    println!("constant: {}", constant);
                     self.push(constant);
                 }
-                OpCode::OpAdd => binary_op!(self, +),
-                OpCode::OpSubtract => binary_op!(self, -),
-                OpCode::OpMultiply => binary_op!(self, *),
-                OpCode::OpDivide => binary_op!(self, /),
-                OpCode::OpNegate => {
-                    let last = self.stack_top - 1;
-                    if let Value::Double(value) = self.stack[last] {
-                        self.stack[last] = Value::Double(-value);
+                OpCode::Add => binary_op!(self, Value::Double, +),
+                OpCode::Subtract => binary_op!(self, Value::Double, -),
+                OpCode::Multiply => binary_op!(self, Value::Double, *),
+                OpCode::Divide => binary_op!(self, Value::Double, /),
+                OpCode::Negate => {
+                    let last = self.peek(0);
+                    if let Value::Double(value) = *last {
+                        *last = Value::Double(-value);
                     } else {
+                        runtime_error!(self, "Operand must be a number.");
                         return Err(InterpretError::RuntimeError);
                     }
                 }
-                OpCode::OpReturn => {
+                OpCode::Not => {
+                    let last = self.peek(0);
+                    *last = Value::Bool(last.is_falsey());
+                }
+                OpCode::Return => {
                     println!("{}", self.pop());
                     return Ok(());
                 }
@@ -121,17 +135,33 @@ impl VM {
         self.stack_top -= 1;
         self.stack[self.stack_top].clone()
     }
+
+    pub fn peek(&mut self, distance: usize) -> &mut Value {
+        &mut self.stack[self.stack_top - 1 - distance]
+    }
 }
 
 #[macro_export]
 macro_rules! binary_op {
-    ($vm:ident, $op:tt) => {{
+    ($vm:ident, $value_type:path, $op:tt) => {{
         let right = $vm.pop();
         let left = $vm.pop();
         if let (Value::Double(right), Value::Double(left)) = (right, left) {
-            $vm.push(Value::Double(left $op right));
+            $vm.push($value_type(left $op right));
         } else {
+            runtime_error!($vm, "Operands must be numbers.");
             return Err(InterpretError::RuntimeError);
         }
+    }};
+}
+
+#[macro_export]
+macro_rules! runtime_error {
+    ($vm:ident, $format:expr $(, $($arg:expr),*)?) => {{
+        eprintln!($format, $($arg),*);
+
+        let line = $vm.chunk.get_line($vm.ip as usize - 1 - $vm.chunk.code.as_ptr() as usize);
+        println!("[line {}] in script", line);
+        $vm.reset_stack();
     }};
 }

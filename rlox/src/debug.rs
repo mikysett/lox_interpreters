@@ -23,14 +23,21 @@ pub mod debug {
         }
 
         match OpCode::from(chunk.code[offset]) {
-            OpCode::OpReturn => simple_instruction("OP_RETURN", offset),
-            OpCode::OpConstant => constant_instruction("OP_CONSTANT", offset, chunk),
-            OpCode::OpConstantLong => constant_long_instruction("OP_CONSTANT_LONG", offset, chunk),
-            OpCode::OpAdd => simple_instruction("OP_ADD", offset),
-            OpCode::OpSubtract => simple_instruction("OP_SUBTRACT", offset),
-            OpCode::OpMultiply => simple_instruction("OP_MULTIPLY", offset),
-            OpCode::OpDivide => simple_instruction("OP_DIVIDE", offset),
-            OpCode::OpNegate => simple_instruction("OP_NEGATE", offset),
+            OpCode::Return => simple_instruction("OP_RETURN", offset),
+            OpCode::Constant => constant_instruction("OP_CONSTANT", offset, chunk),
+            OpCode::ConstantLong => constant_long_instruction("OP_CONSTANT_LONG", offset, chunk),
+            OpCode::True => simple_instruction("OP_TRUE", offset),
+            OpCode::False => simple_instruction("OP_FALSE", offset),
+            OpCode::Equal => simple_instruction("OP_EQUAL", offset),
+            OpCode::Greater => simple_instruction("OP_GREATER", offset),
+            OpCode::Less => simple_instruction("OP_LESS", offset),
+            OpCode::Nil => simple_instruction("OP_NIL", offset),
+            OpCode::Add => simple_instruction("OP_ADD", offset),
+            OpCode::Subtract => simple_instruction("OP_SUBTRACT", offset),
+            OpCode::Multiply => simple_instruction("OP_MULTIPLY", offset),
+            OpCode::Divide => simple_instruction("OP_DIVIDE", offset),
+            OpCode::Negate => simple_instruction("OP_NEGATE", offset),
+            OpCode::Not => simple_instruction("OP_NOT", offset),
             OpCode::Unknown => {
                 println!("Unknown opcode {} at offset {}", chunk.code[offset], offset);
                 offset + 1
