@@ -17,6 +17,8 @@ In `glox` directory you can run:
 
 In `rlox` directory you can run:
 - `make` to build the binary in `bin/rlox`
+- To build an optimized version `OPT=true make`
+- To run `hyperfine` benchmark use `make speedtest`
 
 ## Example of Lox file
 

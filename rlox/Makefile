@@ -9,14 +9,23 @@ GRN	= \033[0;32m
 
 NAME	=	rlox
 
-DIR_S	=	src
+DIR_S			=	src
+DIR_RESOURCES	=	resources
+
+TARGET		 = --release
+DIR_TARGET	 = release
+
+ifeq ($(OPT),true)
+	FLAGS =	--cfg optimize
+endif
 
 RM		=	rm -fdr
 
 $(NAME):
-			cargo build --release
+			export RUSTFLAGS=$(FLAGS) && \
+			cargo build $(TARGET)
 			mkdir -p ./bin
-			cp target/release/$(NAME) ./bin/$(NAME)
+			cp target/$(DIR_TARGET)/$(NAME) ./bin/$(NAME)
 
 install:	build
 # todo: add it to paths so it can be run globally
@@ -24,9 +33,15 @@ install:	build
 build:		$(NAME)
 			printf "$(WHT)[$(GRN)$(NAME) PROGRAM COMPILED$(WHT)]\n"
 
-debug:
-	        export RUSTFLAGS="--cfg debug" && cargo build
-			cp target/debug/$(NAME) ./bin/$(NAME)
+debug:		FLAGS:="--cfg debug $(FLAGS)"
+debug:		TARGET=
+debug:		DIR_TARGET="debug"
+debug:		$(NAME)
+
+speedtest:	FLAGS:="--cfg speedtest $(FLAGS)"
+speedtest:  build
+			printf "$(WHT)[$(BLU)RUNNING SPEED TEST$(WHT)]\n"
+			hyperfine "./bin/$(NAME) $(DIR_RESOURCES)/speedtest.lox" --warmup=1
 
 all:		build install
 
@@ -34,4 +49,4 @@ clean:
 			$(RM) bin target
 			printf "$(WHT)[$(YEL)REMOVED $(NAME) BINARIES$(WHT)]\n"
 
-.PHONY:		all build install clean
+.PHONY:		all build install speedtest debug clean
