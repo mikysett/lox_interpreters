@@ -156,6 +156,11 @@ impl Compiler {
 
     pub fn end_compiler(&mut self) {
         self.emit_return();
+
+        // Optimize pass by aggregating instructions
+        #[cfg(optimize)]
+        self.chunk.optimize();
+
         #[cfg(debug)]
         {
             if !self.parser.had_error {

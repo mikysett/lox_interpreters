@@ -25,6 +25,13 @@ impl Value {
             _ => false,
         }
     }
+
+    pub fn is_zero(&self) -> bool {
+        match self {
+            Value::Double(n) => *n == 0.0,
+            _ => false,
+        }
+    }
 }
 
 impl fmt::Display for Value {

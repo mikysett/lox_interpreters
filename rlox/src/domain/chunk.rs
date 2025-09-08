@@ -16,8 +16,10 @@ pub enum OpCode {
     Negate = 10,
     Not = 11,
     Equal = 12,
-    Greater = 13,
-    Less = 14,
+    #[cfg(optimize)]
+    EqualZero = 13,
+    Greater = 14,
+    Less = 15,
     Unknown = 0xff,
 }
 
@@ -38,8 +40,10 @@ impl From<u8> for OpCode {
             10 => OpCode::Negate,
             11 => OpCode::Not,
             12 => OpCode::Equal,
-            13 => OpCode::Greater,
-            14 => OpCode::Less,
+            #[cfg(optimize)]
+            13 => OpCode::EqualZero,
+            14 => OpCode::Greater,
+            15 => OpCode::Less,
             _ => OpCode::Unknown,
         }
     }
@@ -127,5 +131,72 @@ impl Chunk {
             }
         }
         self.lines.last().map(|line| line.line_number).unwrap()
+    }
+
+    #[cfg(optimize)]
+    pub fn optimize(&mut self) {
+        let permutations = vec![Permutation::new(3, |chunk, off| {
+            if chunk.code.len() > off + 3
+                && chunk.code[off] == OpCode::Constant as u8
+                && chunk.code[off + 2] == OpCode::Equal as u8
+            {
+                let pointer = chunk.code[off + 1] as usize;
+                if chunk.constants[pointer].is_zero() {
+                    return Some(vec![OpCode::EqualZero as u8]);
+                }
+            }
+            None
+        })];
+
+        loop {
+            let mut new_chunk = Chunk::new();
+            let mut last_written = 0;
+            self.code.iter().enumerate().for_each(|(offset, _)| {
+                if last_written > offset {
+                    return;
+                }
+
+                for permutation in &permutations {
+                    if let Some(new_opcodes) = (permutation.try_apply)(self, offset) {
+                        while last_written != offset {
+                            new_chunk.write(self.code[last_written], self.get_line(last_written));
+                            last_written += 1;
+                        }
+
+                        let permutated_line = self.get_line(last_written);
+                        for new_opcode in new_opcodes {
+                            new_chunk.write(new_opcode, permutated_line);
+                        }
+                        last_written += permutation.len;
+                    }
+                }
+            });
+
+            if last_written != 0 {
+                while last_written < self.code.len() {
+                    new_chunk.write(self.code[last_written], self.get_line(last_written));
+                    last_written += 1;
+                }
+
+                self.lines = new_chunk.lines;
+                self.code = new_chunk.code;
+            } else {
+                break;
+            }
+        }
+    }
+}
+
+#[cfg(optimize)]
+#[derive(Debug)]
+struct Permutation {
+    len: usize,
+    try_apply: fn(&Chunk, usize) -> Option<Vec<u8>>,
+}
+
+#[cfg(optimize)]
+impl Permutation {
+    pub fn new(len: usize, try_apply: fn(&Chunk, usize) -> Option<Vec<u8>>) -> Self {
+        Permutation { len, try_apply }
     }
 }
