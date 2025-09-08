@@ -6,6 +6,9 @@ use crate::runtime_error;
 const STACK_MAX: usize = 256;
 const VALUE_UNKNOWN: Value = Value::Unknown;
 
+#[cfg(speedtest)]
+const SPEED_TEST_RUNS: i32 = 10_000_000;
+
 #[derive(Debug)]
 pub enum InterpretError {
     CompileError,
@@ -39,8 +42,23 @@ impl VM {
     pub fn interpret<'a>(&mut self, source: &'a [u8]) -> Result<(), InterpretError> {
         compile(source).and_then(|chunk| {
             self.chunk = chunk;
-            self.ip = self.chunk.code.as_ptr();
-            let result = self.run();
+
+            let result;
+            #[cfg(speedtest)]
+            {
+                let mut last_result = Result::Ok(());
+                for _ in 0..SPEED_TEST_RUNS {
+                    self.ip = self.chunk.code.as_ptr();
+                    last_result = self.run();
+                }
+                result = last_result;
+            }
+            #[cfg(not(speedtest))]
+            {
+                self.ip = self.chunk.code.as_ptr();
+                result = self.run();
+            }
+
             self.chunk.free();
             result
         })
@@ -59,6 +77,11 @@ impl VM {
                     let right = self.pop();
                     let left = self.pop();
                     self.push(Value::Bool(left.equal(&right)));
+                }
+                #[cfg(optimize)]
+                OpCode::EqualZero => {
+                    let value = self.pop();
+                    self.push(Value::Bool(value.is_zero()));
                 }
                 OpCode::Greater => binary_op!(self, Value::Bool, >),
                 OpCode::Less => binary_op!(self, Value::Bool, <),
@@ -85,7 +108,12 @@ impl VM {
                     *last = Value::Bool(last.is_falsey());
                 }
                 OpCode::Return => {
+                    // Writing to stdout makes speedtests slower with no benefit
+                    #[cfg(not(speedtest))]
                     println!("{}", self.pop());
+
+                    #[cfg(speedtest)]
+                    self.pop();
                     return Ok(());
                 }
                 OpCode::Unknown => return Err(InterpretError::RuntimeError),
