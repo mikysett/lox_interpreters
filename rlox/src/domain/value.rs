@@ -1,3 +1,7 @@
+use crate::{
+    is_string,
+    object::{MetaObject, Object},
+};
 use std::fmt;
 #[derive(Debug, Clone)]
 #[repr(u8)] // TODO: Verify this doesn't break with values > u8
@@ -5,6 +9,7 @@ pub enum Value {
     Unknown = 0,
     Double(f64),
     Bool(bool),
+    Obj(MetaObject),
     Nil,
 }
 
@@ -22,6 +27,7 @@ impl Value {
             (Value::Bool(a), Value::Bool(b)) => a == b,
             (Value::Nil, Value::Nil) => true,
             (Value::Double(a), Value::Double(b)) => a == b,
+            (is_string!(a), is_string!(b)) => a == b,
             _ => false,
         }
     }
@@ -39,6 +45,7 @@ impl fmt::Display for Value {
         match self {
             Value::Double(n) => write!(f, "{n}"),
             Value::Bool(n) => write!(f, "{n}"),
+            Value::Obj(n) => write!(f, "{n}"),
             Value::Nil => write!(f, "nil"),
             Value::Unknown => write!(f, "unknown"),
         }

@@ -1,12 +1,15 @@
 use crate::binary_op;
 use crate::compile;
 use crate::domain::{Chunk, OpCode, Value};
+use crate::is_string;
+use crate::object::MetaObject;
+use crate::object::Object;
 use crate::runtime_error;
 
 const STACK_MAX: usize = 256;
 const VALUE_UNKNOWN: Value = Value::Unknown;
 
-#[cfg(speedtest)]
+#[cfg(feature = "speedtest")]
 const SPEED_TEST_RUNS: i32 = 10_000_000;
 
 #[derive(Debug)]
@@ -37,14 +40,12 @@ impl VM {
         self.chunk.free(); // This is implemented in run() after vm.free() by the book
     }
 
-    // The lifetime is needed to ensure the [source] won't be freed before the VM consumes it.
-    // By storing [source] in an unsafe ptr the compiler will not understand it needs to stay live without the lifetime.
-    pub fn interpret<'a>(&mut self, source: &'a [u8]) -> Result<(), InterpretError> {
+    pub fn interpret(&mut self, source: &[u8]) -> Result<(), InterpretError> {
         compile(source).and_then(|chunk| {
             self.chunk = chunk;
 
             let result;
-            #[cfg(speedtest)]
+            #[cfg(feature = "speedtest")]
             {
                 let mut last_result = Result::Ok(());
                 for _ in 0..SPEED_TEST_RUNS {
@@ -53,7 +54,7 @@ impl VM {
                 }
                 result = last_result;
             }
-            #[cfg(not(speedtest))]
+            #[cfg(not(feature = "speedtest"))]
             {
                 self.ip = self.chunk.code.as_ptr();
                 result = self.run();
@@ -78,7 +79,7 @@ impl VM {
                     let left = self.pop();
                     self.push(Value::Bool(left.equal(&right)));
                 }
-                #[cfg(optimize)]
+                #[cfg(feature = "optimize")]
                 OpCode::EqualZero => {
                     let value = self.pop();
                     self.push(Value::Bool(value.is_zero()));
@@ -90,12 +91,25 @@ impl VM {
                     let constant = self.read_constant_long().clone();
                     self.push(constant);
                 }
-                OpCode::Add => binary_op!(self, Value::Double, +),
+                OpCode::Add => {
+                    let right = self.pop();
+                    let left = self.pop();
+
+                    match (left, right) {
+                        (is_string!(a), is_string!(b)) => self.push(Value::Obj(MetaObject {
+                            obj: Object::Str(a + b.as_str()),
+                        })),
+                        (Value::Double(left), Value::Double(right)) => {
+                            self.push(Value::Double(left + right))
+                        }
+                        _ => runtime_error!(self, "Operands must be two numbers or two strings."),
+                    }
+                }
                 OpCode::Subtract => binary_op!(self, Value::Double, -),
                 OpCode::Multiply => binary_op!(self, Value::Double, *),
                 OpCode::Divide => binary_op!(self, Value::Double, /),
                 OpCode::Negate => {
-                    let last = self.peek(0);
+                    let last = self.peek_mut(0);
                     if let Value::Double(value) = *last {
                         *last = Value::Double(-value);
                     } else {
@@ -104,15 +118,15 @@ impl VM {
                     }
                 }
                 OpCode::Not => {
-                    let last = self.peek(0);
+                    let last = self.peek_mut(0);
                     *last = Value::Bool(last.is_falsey());
                 }
                 OpCode::Return => {
                     // Writing to stdout makes speedtests slower with no benefit
-                    #[cfg(not(speedtest))]
+                    #[cfg(not(feature = "speedtest"))]
                     println!("{}", self.pop());
 
-                    #[cfg(speedtest)]
+                    #[cfg(feature = "speedtest")]
                     self.pop();
                     return Ok(());
                 }
@@ -164,7 +178,7 @@ impl VM {
         self.stack[self.stack_top].clone()
     }
 
-    pub fn peek(&mut self, distance: usize) -> &mut Value {
+    pub fn peek_mut(&mut self, distance: usize) -> &mut Value {
         &mut self.stack[self.stack_top - 1 - distance]
     }
 }

@@ -1,8 +1,9 @@
-#[cfg(debug)]
+#[cfg(feature = "debug")]
 use crate::debug::debug::disassemble_chunk;
 use crate::domain::Chunk;
 use crate::domain::OpCode;
 use crate::domain::Value;
+use crate::object::copy_string;
 use crate::scanner::Scanner;
 use crate::scanner::Token;
 use crate::scanner::TokenType;
@@ -158,10 +159,10 @@ impl Compiler {
         self.emit_return();
 
         // Optimize pass by aggregating instructions
-        #[cfg(optimize)]
+        #[cfg(feature = "optimize")]
         self.chunk.optimize();
 
-        #[cfg(debug)]
+        #[cfg(feature = "debug")]
         {
             if !self.parser.had_error {
                 disassemble_chunk(&self.current_chunk(), "code");
@@ -180,8 +181,13 @@ impl Compiler {
     }
 
     pub fn number(&mut self) {
-        let constant = Value::Double(self.parser.previous.as_str().parse::<f64>().unwrap());
-        self.emit_constant(constant);
+        self.emit_constant(Value::Double(
+            self.parser.previous.as_str().parse::<f64>().unwrap(),
+        ));
+    }
+
+    pub fn string(&mut self) {
+        self.emit_constant(Value::Obj(copy_string(&self.parser.previous)));
     }
 
     pub fn unary(&mut self) {
@@ -309,7 +315,7 @@ const RULES: [ParserRule; 40] = [
     ParserRule::new(None, Some(Compiler::binary), Precedence::Comparison), // TokenType::Less
     ParserRule::new(None, Some(Compiler::binary), Precedence::Comparison), // TokenType::LessEqual
     ParserRule::new(None, None, Precedence::None),                     // TokenType::Identifier
-    ParserRule::new(None, None, Precedence::None),                     // TokenType::String
+    ParserRule::new(Some(Compiler::string), None, Precedence::None),   // TokenType::String
     ParserRule::new(Some(Compiler::number), None, Precedence::None),   // TokenType::Number
     ParserRule::new(None, None, Precedence::None),                     // TokenType::And
     ParserRule::new(None, None, Precedence::None),                     // TokenType::Class
