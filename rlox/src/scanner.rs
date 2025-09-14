@@ -114,11 +114,11 @@ impl Scanner {
         }
     }
 
-    fn peek(&mut self) -> char {
+    fn peek(&self) -> char {
         unsafe { *self.current as char }
     }
 
-    fn peek_next(&mut self) -> char {
+    fn peek_next(&self) -> char {
         if self.is_at_end() {
             '\0'
         } else {
