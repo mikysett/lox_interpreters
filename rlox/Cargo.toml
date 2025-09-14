@@ -11,3 +11,8 @@ name = "rlox"
 path = "src/main.rs"
 
 [dependencies]
+
+[features]
+speedtest = []
+optimize = []
+debug = []

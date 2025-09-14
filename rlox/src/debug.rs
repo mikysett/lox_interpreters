@@ -1,4 +1,4 @@
-#[cfg(debug)]
+#[cfg(feature = "debug")]
 pub mod debug {
     use crate::domain::Chunk;
     use crate::domain::OpCode;
@@ -29,7 +29,7 @@ pub mod debug {
             OpCode::True => simple_instruction("OP_TRUE", offset),
             OpCode::False => simple_instruction("OP_FALSE", offset),
             OpCode::Equal => simple_instruction("OP_EQUAL", offset),
-            #[cfg(optimize)]
+            #[cfg(feature = "optimize")]
             OpCode::EqualZero => simple_instruction("OP_EQUAL_ZERO", offset),
             OpCode::Greater => simple_instruction("OP_GREATER", offset),
             OpCode::Less => simple_instruction("OP_LESS", offset),

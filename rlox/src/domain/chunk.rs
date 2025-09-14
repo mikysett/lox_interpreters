@@ -16,7 +16,7 @@ pub enum OpCode {
     Negate = 10,
     Not = 11,
     Equal = 12,
-    #[cfg(optimize)]
+    #[cfg(feature = "optimize")]
     EqualZero = 13,
     Greater = 14,
     Less = 15,
@@ -40,7 +40,7 @@ impl From<u8> for OpCode {
             10 => OpCode::Negate,
             11 => OpCode::Not,
             12 => OpCode::Equal,
-            #[cfg(optimize)]
+            #[cfg(feature = "optimize")]
             13 => OpCode::EqualZero,
             14 => OpCode::Greater,
             15 => OpCode::Less,
@@ -133,7 +133,7 @@ impl Chunk {
         self.lines.last().map(|line| line.line_number).unwrap()
     }
 
-    #[cfg(optimize)]
+    #[cfg(feature = "optimize")]
     pub fn optimize(&mut self) {
         let permutations = vec![Permutation::new(3, |chunk, off| {
             if chunk.code.len() > off + 3
@@ -187,14 +187,14 @@ impl Chunk {
     }
 }
 
-#[cfg(optimize)]
+#[cfg(feature = "optimize")]
 #[derive(Debug)]
 struct Permutation {
     len: usize,
     try_apply: fn(&Chunk, usize) -> Option<Vec<u8>>,
 }
 
-#[cfg(optimize)]
+#[cfg(feature = "optimize")]
 impl Permutation {
     pub fn new(len: usize, try_apply: fn(&Chunk, usize) -> Option<Vec<u8>>) -> Self {
         Permutation { len, try_apply }

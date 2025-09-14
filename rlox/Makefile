@@ -14,16 +14,16 @@ DIR_RESOURCES	=	resources
 
 TARGET		 = --release
 DIR_TARGET	 = release
+FEATURES 	 =
 
 ifeq ($(OPT),true)
-	FLAGS =	--cfg optimize
+	FEATURES += optimize
 endif
 
 RM		=	rm -fdr
 
 $(NAME):
-			export RUSTFLAGS=$(FLAGS) && \
-			cargo build $(TARGET)
+			cargo build $(TARGET) --features "$(FEATURES)"
 			mkdir -p ./bin
 			cp target/$(DIR_TARGET)/$(NAME) ./bin/$(NAME)
 
@@ -33,12 +33,12 @@ install:	build
 build:		$(NAME)
 			printf "$(WHT)[$(GRN)$(NAME) PROGRAM COMPILED$(WHT)]\n"
 
-debug:		FLAGS:="--cfg debug $(FLAGS)"
+debug:		FEATURES += debug
 debug:		TARGET=
 debug:		DIR_TARGET="debug"
-debug:		$(NAME)
+debug:		build
 
-speedtest:	FLAGS:="--cfg speedtest $(FLAGS)"
+speedtest:	FEATURES += speedtest
 speedtest:  build
 			printf "$(WHT)[$(BLU)RUNNING SPEED TEST$(WHT)]\n"
 			hyperfine "./bin/$(NAME) $(DIR_RESOURCES)/speedtest.lox" --warmup=1
